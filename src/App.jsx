@@ -3,7 +3,7 @@ import {
   ShieldCheck, LayoutGrid, PlusCircle, FolderOpen, Trash2, 
   Globe, Building, Save, X, Copy, Pencil, DoorClosed, 
   DoorOpen, AlertCircle, ArrowRight, ArrowLeft, FileSpreadsheet, 
-  Brain, Check, AlertTriangle, TreeDeciduous, RectangleHorizontal 
+  Brain, Check, AlertTriangle, TreeDeciduous, RectangleHorizontal, Menu 
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -62,35 +62,35 @@ const STANDARD_FINISHES = {
 
 const LandingPage = ({ onStart, hasProjects }) => (
   <div className="absolute top-0 left-0 w-full min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 z-50 flex flex-col overflow-y-auto">
-    <nav className="px-8 py-6 flex justify-between items-center">
-      <div className="flex items-center gap-2 font-extrabold text-2xl text-gray-900">
-        <ShieldCheck className="text-primary w-8 h-8" />
+    <nav className="px-4 md:px-8 py-6 flex justify-between items-center">
+      <div className="flex items-center gap-2 font-extrabold text-xl md:text-2xl text-gray-900">
+        <ShieldCheck className="text-primary w-6 h-6 md:w-8 md:h-8" />
         <span>SpecSmart</span>
       </div>
       <div>
         <button 
           onClick={onStart} 
-          className={`px-6 py-2 rounded-md font-medium transition-colors ${hasProjects ? 'bg-primary text-white hover:bg-primary-hover' : 'bg-white border border-gray-200 hover:bg-gray-50'}`}
+          className={`px-4 py-2 md:px-6 md:py-2 rounded-md font-medium text-sm md:text-base transition-colors ${hasProjects ? 'bg-primary text-white hover:bg-primary-hover' : 'bg-white border border-gray-200 hover:bg-gray-50'}`}
         >
-          {hasProjects ? 'Continue to Dashboard' : 'Get Started'}
+          {hasProjects ? 'Dashboard' : 'Get Started'}
         </button>
       </div>
     </nav>
 
-    <section className="flex-1 flex flex-col lg:flex-row items-center justify-between px-8 lg:px-16 max-w-7xl mx-auto gap-16 py-12">
-      <div className="max-w-xl animate-slideUp">
-        <div className="inline-flex items-center px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-sm font-semibold mb-6">
+    <section className="flex-1 flex flex-col lg:flex-row items-center justify-between px-4 md:px-8 lg:px-16 max-w-7xl mx-auto gap-8 lg:gap-16 py-8 lg:py-12">
+      <div className="max-w-xl animate-slideUp text-center lg:text-left">
+        <div className="inline-flex items-center px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs md:text-sm font-semibold mb-6">
           <ShieldCheck className="w-4 h-4 mr-2" /> Best-in-Class Specification Tool
         </div>
-        <h1 className="text-5xl lg:text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-indigo-700 mb-6 leading-tight">
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-indigo-700 mb-6 leading-tight">
           The Smarter Way to Specify Door Hardware.
         </h1>
-        <p className="text-xl text-gray-600 mb-10 leading-relaxed">
+        <p className="text-lg md:text-xl text-gray-600 mb-10 leading-relaxed">
           Automated standards compliance (ANSI/EN), smart product recommendations, and instant Excel exports. 
-          Built for Architects, Specifiers, and Ironmongers to eliminate errors and save time.
+          Built for Architects and Specifiers.
         </p>
-        <div className="flex gap-4">
-          <button onClick={onStart} className="px-8 py-4 bg-primary text-white rounded-lg font-bold text-lg shadow-lg hover:bg-primary-hover transition-all flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+          <button onClick={onStart} className="px-8 py-4 bg-primary text-white rounded-lg font-bold text-lg shadow-lg hover:bg-primary-hover transition-all flex items-center justify-center gap-2">
             Start Specification Journey <ArrowRight className="w-5 h-5" />
           </button>
           <button onClick={() => alert('Demo Mode: Click Start Journey to begin!')} className="px-8 py-4 bg-white text-gray-900 border border-gray-200 rounded-lg font-bold text-lg hover:bg-gray-50 transition-all">
@@ -99,7 +99,7 @@ const LandingPage = ({ onStart, hasProjects }) => (
         </div>
       </div>
       
-      <div className="flex-1 relative perspective-1500 w-full max-w-lg">
+      <div className="flex-1 relative perspective-1500 w-full max-w-lg hidden md:block">
         <div className="bg-white rounded-xl shadow-2xl p-6 border border-white/80 transform-3d-card animate-float">
           <div className="flex justify-between mb-4 border-b border-slate-100 pb-2">
             <div className="font-bold text-slate-800">Door Schedule</div>
@@ -486,46 +486,46 @@ const App = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900 font-sans">
       {/* Global Header */}
-      <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-40">
-        <div className="flex items-center gap-2 font-bold text-xl text-gray-900">
+      <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-40">
+        <div className="flex items-center gap-2 font-bold text-lg md:text-xl text-gray-900">
           <ShieldCheck className="text-primary" />
           <span>SpecSmart</span>
         </div>
-        <button onClick={() => setView('dashboard')} className="text-gray-500 hover:text-gray-900 flex items-center gap-2">
-          <LayoutGrid size={18} /> Dashboard
+        <button onClick={() => setView('dashboard')} className="text-gray-500 hover:text-gray-900 flex items-center gap-2 text-sm md:text-base">
+          <LayoutGrid size={18} /> <span className="hidden md:inline">Dashboard</span>
         </button>
       </header>
 
       {/* Project Context Bar (Only in Wizard) */}
       {view === 'wizard' && getProj() && (
-        <div className="bg-white border-b border-gray-200 px-8 py-3 flex items-center justify-between sticky top-16 z-30 shadow-sm">
-          <div className="flex items-center gap-4">
-            <span className="font-bold text-lg">{getProj().name}</span>
-            <span className="px-2 py-0.5 border rounded text-sm text-gray-500 bg-white">{getProj().standard}</span>
-            <span className="px-2 py-0.5 border rounded text-sm text-gray-500 bg-white">{getProj().type}</span>
+        <div className="bg-white border-b border-gray-200 px-4 md:px-8 py-3 flex flex-col md:flex-row items-start md:items-center justify-between sticky top-16 z-30 shadow-sm gap-3">
+          <div className="flex flex-wrap items-center gap-2 md:gap-4">
+            <span className="font-bold text-base md:text-lg">{getProj().name}</span>
+            <span className="px-2 py-0.5 border rounded text-xs md:text-sm text-gray-500 bg-white whitespace-nowrap">{getProj().standard}</span>
+            <span className="px-2 py-0.5 border rounded text-xs md:text-sm text-gray-500 bg-white whitespace-nowrap">{getProj().type}</span>
           </div>
-          <div className="flex gap-2">
-            <button onClick={() => { saveProjectDetails(getProj().name, getProj().type, getProj().standard); alert("Saved locally"); }} className="px-3 py-1.5 bg-white border border-gray-200 rounded hover:bg-gray-50 flex items-center gap-2 text-sm">
+          <div className="flex gap-2 w-full md:w-auto justify-end">
+            <button onClick={() => { saveProjectDetails(getProj().name, getProj().type, getProj().standard); alert("Saved locally"); }} className="px-3 py-1.5 bg-white border border-gray-200 rounded hover:bg-gray-50 flex items-center gap-2 text-xs md:text-sm">
               <Save size={16} /> Save
             </button>
-            <button onClick={() => setView('dashboard')} className="px-3 py-1.5 bg-white border border-gray-200 rounded hover:bg-gray-50 flex items-center gap-2 text-sm">
+            <button onClick={() => setView('dashboard')} className="px-3 py-1.5 bg-white border border-gray-200 rounded hover:bg-gray-50 flex items-center gap-2 text-xs md:text-sm">
               <X size={16} /> Close
             </button>
           </div>
         </div>
       )}
 
-      <main className="flex-1 p-8 max-w-7xl mx-auto w-full">
+      <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
         
         {/* DASHBOARD VIEW */}
         {view === 'dashboard' && (
           <div className="animate-slideUp">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
               <div>
-                <h1 className="text-3xl font-bold">Projects</h1>
+                <h1 className="text-2xl md:text-3xl font-bold">Projects</h1>
                 <p className="text-gray-500">Manage your door specifications.</p>
               </div>
-              <button onClick={createProject} className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover flex items-center gap-2 font-medium shadow-sm">
+              <button onClick={createProject} className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover flex items-center gap-2 font-medium shadow-sm w-full md:w-auto justify-center">
                 <PlusCircle size={18} /> New Project
               </button>
             </div>
@@ -558,16 +558,16 @@ const App = () => {
         {/* WIZARD VIEW */}
         {view === 'wizard' && getProj() && (
           <div>
-            {/* Stepper */}
-            <div className="flex justify-center mb-10 relative">
-              <div className="absolute top-1/2 left-1/4 right-1/4 h-0.5 bg-gray-200 -z-10"></div>
-              <div className="flex gap-16">
+            {/* Stepper - Scrollable on Mobile */}
+            <div className="flex justify-center mb-6 md:mb-10 relative overflow-x-auto pb-2">
+              <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-200 -z-10 hidden md:block w-full"></div>
+              <div className="flex gap-8 md:gap-16 min-w-max px-4">
                 {['Setup', 'Schedule', 'Hardware', 'Review'].map((label, idx) => (
-                  <div key={idx} onClick={() => setStep(idx)} className="flex flex-col items-center gap-2 cursor-pointer group bg-gray-50 px-2">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 transition-colors ${step === idx ? 'bg-primary border-primary text-white' : step > idx ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-gray-300 text-gray-400'}`}>
-                      {step > idx ? <Check size={18} /> : idx + 1}
+                  <div key={idx} onClick={() => setStep(idx)} className="flex flex-col items-center gap-2 cursor-pointer group bg-gray-50 px-2 relative z-10">
+                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold border-2 transition-colors ${step === idx ? 'bg-primary border-primary text-white' : step > idx ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-gray-300 text-gray-400'}`}>
+                      {step > idx ? <Check size={16} /> : idx + 1}
                     </div>
-                    <span className={`text-xs font-bold uppercase tracking-wider ${step === idx ? 'text-primary' : 'text-gray-400'}`}>{label}</span>
+                    <span className={`text-[10px] md:text-xs font-bold uppercase tracking-wider ${step === idx ? 'text-primary' : 'text-gray-400'}`}>{label}</span>
                   </div>
                 ))}
               </div>
@@ -575,7 +575,7 @@ const App = () => {
 
             {/* Step 0: Setup */}
             {step === 0 && (
-              <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-8 animate-slideUp">
+              <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8 animate-slideUp">
                 <h2 className="text-xl font-bold mb-6">Project Details</h2>
                 <div className="space-y-4">
                   <div className="flex flex-col gap-1">
@@ -590,7 +590,7 @@ const App = () => {
                       className="p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-100 focus:border-primary outline-none w-full"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1">
                       <label className="text-xs font-bold uppercase text-gray-600">Facility Type</label>
                       <select 
@@ -620,7 +620,7 @@ const App = () => {
                     </div>
                   </div>
                   <div className="flex justify-end mt-6">
-                    <button onClick={() => setStep(1)} className="px-6 py-2.5 bg-primary text-white rounded-md hover:bg-primary-hover font-medium flex items-center gap-2">
+                    <button onClick={() => setStep(1)} className="w-full md:w-auto px-6 py-2.5 bg-primary text-white rounded-md hover:bg-primary-hover font-medium flex items-center justify-center gap-2">
                       Save & Continue <ArrowRight size={18} />
                     </button>
                   </div>
@@ -630,10 +630,10 @@ const App = () => {
 
             {/* Step 1: Door Schedule */}
             {step === 1 && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-slideUp">
-                <div className="flex justify-between items-center mb-6">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6 animate-slideUp">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                   <h2 className="text-xl font-bold">Door Schedule</h2>
-                  <button onClick={() => openDoorModal()} className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover font-medium flex items-center gap-2">
+                  <button onClick={() => openDoorModal()} className="w-full sm:w-auto px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover font-medium flex items-center justify-center gap-2">
                     <PlusCircle size={18} /> Add Door
                   </button>
                 </div>
@@ -645,7 +645,7 @@ const App = () => {
                   </div>
                 ) : (
                   <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                    <table className="w-full table-clean">
+                    <table className="w-full table-clean min-w-[800px]">
                       <thead>
                         <tr>
                           <th>Mark</th><th>Location</th><th>Qty</th><th>WxH (mm)</th><th>Weight</th><th>Fire</th><th>Type</th><th>Actions</th>
@@ -663,9 +663,9 @@ const App = () => {
                             <td className="text-sm">{d.material} / {d.config}</td>
                             <td>
                               <div className="flex gap-1">
-                                <button onClick={() => duplicateDoor(d.id)} className="p-1.5 hover:bg-gray-100 rounded text-gray-500" title="Duplicate"><Copy size={16} /></button>
-                                <button onClick={() => openDoorModal(d)} className="p-1.5 hover:bg-gray-100 rounded text-gray-500" title="Edit"><Pencil size={16} /></button>
-                                <button onClick={() => deleteDoor(d.id)} className="p-1.5 hover:bg-red-50 rounded text-red-500" title="Delete"><Trash2 size={16} /></button>
+                                <button onClick={() => duplicateDoor(d.id)} className="p-2 hover:bg-gray-100 rounded text-gray-500" title="Duplicate"><Copy size={16} /></button>
+                                <button onClick={() => openDoorModal(d)} className="p-2 hover:bg-gray-100 rounded text-gray-500" title="Edit"><Pencil size={16} /></button>
+                                <button onClick={() => deleteDoor(d.id)} className="p-2 hover:bg-red-50 rounded text-red-500" title="Delete"><Trash2 size={16} /></button>
                               </div>
                             </td>
                           </tr>
@@ -676,7 +676,7 @@ const App = () => {
                 )}
                 
                 <div className="flex justify-end mt-6">
-                  <button onClick={generateHardwareSets} className="px-6 py-2.5 bg-primary text-white rounded-md hover:bg-primary-hover font-medium flex items-center gap-2">
+                  <button onClick={generateHardwareSets} className="w-full md:w-auto px-6 py-2.5 bg-primary text-white rounded-md hover:bg-primary-hover font-medium flex items-center justify-center gap-2">
                     Generate Hardware Sets <ArrowRight size={18} />
                   </button>
                 </div>
@@ -685,9 +685,9 @@ const App = () => {
 
             {/* Step 2: Hardware */}
             {step === 2 && (
-              <div className="flex flex-col lg:flex-row gap-6 h-[700px] animate-slideUp">
-                {/* Sidebar */}
-                <div className="w-full lg:w-72 bg-white border border-gray-200 rounded-xl overflow-hidden flex flex-col shrink-0">
+              <div className="flex flex-col lg:flex-row gap-6 h-auto lg:h-[700px] animate-slideUp">
+                {/* Sidebar - Moves to top on mobile */}
+                <div className="w-full lg:w-72 bg-white border border-gray-200 rounded-xl overflow-hidden flex flex-col shrink-0 h-48 lg:h-auto">
                   <div className="bg-gray-50 p-4 border-b border-gray-200 font-bold text-gray-500 uppercase text-xs tracking-wider">Hardware Sets</div>
                   <div className="overflow-y-auto flex-1">
                     {getProj().sets.map(s => (
@@ -700,66 +700,69 @@ const App = () => {
                 </div>
 
                 {/* Editor */}
-                <div className="flex-1 bg-white border border-gray-200 rounded-xl flex flex-col overflow-hidden">
-                  <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 bg-white border border-gray-200 rounded-xl flex flex-col overflow-hidden min-h-[500px]">
+                  <div className="flex-1 overflow-y-auto p-4 md:p-6">
                     {getProj().sets.map(s => (
                       <div key={s.id} className="mb-12">
-                        <div className="flex justify-between items-center mb-4">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
                           <h2 className="text-xl font-bold">{s.id}: {s.name}</h2>
                           <span className="bg-indigo-50 text-primary px-3 py-1 rounded-full text-sm font-bold">{getProj().doors.filter(d => s.doors.includes(d.id)).length} Doors Assigned</span>
                         </div>
 
-                        <div className="border border-gray-200 rounded-lg overflow-hidden mb-4">
-                          <div className="grid grid-cols-[60px_200px_140px_1fr_60px_40px] bg-gray-50 border-b border-gray-200 p-3 text-xs font-bold text-gray-500 uppercase">
-                            <div>Ref</div><div>Product Type</div><div>Finish</div><div>Specification</div><div>Qty</div><div></div>
-                          </div>
-                          {s.items.map((item, idx) => {
-                            const usedTypes = s.items.filter(i => i.type === item.type).length;
-                            const isDuplicate = usedTypes > 1;
-                            const cat = item.category || "Hinges";
-                            const options = PRODUCT_SUBTYPES[cat] || PRODUCT_SUBTYPES["Hinges"];
-                            const finishes = STANDARD_FINISHES[getProj().standard];
+                        {/* Scrollable Table Container for Mobile */}
+                        <div className="border border-gray-200 rounded-lg overflow-hidden mb-4 overflow-x-auto">
+                          <div className="min-w-[800px]"> {/* Force minimum width to prevent squishing */}
+                            <div className="grid grid-cols-[60px_200px_140px_1fr_60px_40px] bg-gray-50 border-b border-gray-200 p-3 text-xs font-bold text-gray-500 uppercase">
+                              <div>Ref</div><div>Product Type</div><div>Finish</div><div>Specification</div><div>Qty</div><div></div>
+                            </div>
+                            {s.items.map((item, idx) => {
+                              const usedTypes = s.items.filter(i => i.type === item.type).length;
+                              const isDuplicate = usedTypes > 1;
+                              const cat = item.category || "Hinges";
+                              const options = PRODUCT_SUBTYPES[cat] || PRODUCT_SUBTYPES["Hinges"];
+                              const finishes = STANDARD_FINISHES[getProj().standard];
 
-                            return (
-                              <div key={idx} className="grid grid-cols-[60px_200px_140px_1fr_60px_40px] border-b border-gray-100 p-2 items-center hover:bg-gray-50 relative">
-                                {isDuplicate && <AlertTriangle className="absolute left-1 text-yellow-500" size={14} />}
-                                <input 
-                                  type="text" value={item.ref} 
-                                  onChange={(e) => updateSetItem(s.id, idx, 'ref', e.target.value)} 
-                                  className="w-full p-1 border border-gray-300 rounded text-sm"
-                                />
-                                <select 
-                                  value={item.type} 
-                                  onChange={(e) => updateSetItem(s.id, idx, 'type', e.target.value)} 
-                                  className="w-full p-1 border border-gray-300 rounded text-sm bg-white"
-                                >
-                                  {options.map(opt => <option key={opt.name} value={opt.name}>{opt.name}</option>)}
-                                </select>
-                                <select 
-                                  value={item.finish} 
-                                  onChange={(e) => updateSetItem(s.id, idx, 'finish', e.target.value)} 
-                                  className="w-full p-1 border border-gray-300 rounded text-sm bg-white"
-                                >
-                                  {finishes.map(f => <option key={f} value={f}>{f}</option>)}
-                                  <option value="N/A">N/A</option>
-                                </select>
-                                <input 
-                                  type="text" value={item.spec} 
-                                  onChange={(e) => updateSetItem(s.id, idx, 'spec', e.target.value)} 
-                                  className="w-full p-1 border border-gray-300 rounded text-sm"
-                                />
-                                <input 
-                                  type="text" value={item.qty} 
-                                  onChange={(e) => updateSetItem(s.id, idx, 'qty', e.target.value)} 
-                                  className="w-full p-1 border border-gray-300 rounded text-sm"
-                                />
-                                <button onClick={() => deleteSetItem(s.id, idx)} className="text-red-400 hover:text-red-600 flex justify-center"><Trash2 size={16}/></button>
-                              </div>
-                            );
-                          })}
+                              return (
+                                <div key={idx} className="grid grid-cols-[60px_200px_140px_1fr_60px_40px] border-b border-gray-100 p-2 items-center hover:bg-gray-50 relative">
+                                  {isDuplicate && <AlertTriangle className="absolute left-1 text-yellow-500" size={14} />}
+                                  <input 
+                                    type="text" value={item.ref} 
+                                    onChange={(e) => updateSetItem(s.id, idx, 'ref', e.target.value)} 
+                                    className="w-full p-2 border border-gray-300 rounded text-sm"
+                                  />
+                                  <select 
+                                    value={item.type} 
+                                    onChange={(e) => updateSetItem(s.id, idx, 'type', e.target.value)} 
+                                    className="w-full p-2 border border-gray-300 rounded text-sm bg-white"
+                                  >
+                                    {options.map(opt => <option key={opt.name} value={opt.name}>{opt.name}</option>)}
+                                  </select>
+                                  <select 
+                                    value={item.finish} 
+                                    onChange={(e) => updateSetItem(s.id, idx, 'finish', e.target.value)} 
+                                    className="w-full p-2 border border-gray-300 rounded text-sm bg-white"
+                                  >
+                                    {finishes.map(f => <option key={f} value={f}>{f}</option>)}
+                                    <option value="N/A">N/A</option>
+                                  </select>
+                                  <input 
+                                    type="text" value={item.spec} 
+                                    onChange={(e) => updateSetItem(s.id, idx, 'spec', e.target.value)} 
+                                    className="w-full p-2 border border-gray-300 rounded text-sm"
+                                  />
+                                  <input 
+                                    type="text" value={item.qty} 
+                                    onChange={(e) => updateSetItem(s.id, idx, 'qty', e.target.value)} 
+                                    className="w-full p-2 border border-gray-300 rounded text-sm"
+                                  />
+                                  <button onClick={() => deleteSetItem(s.id, idx)} className="text-red-400 hover:text-red-600 flex justify-center p-2"><Trash2 size={16}/></button>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                         
-                        <button onClick={() => addSetItem(s.id)} className="text-sm font-medium text-primary hover:underline flex items-center gap-1 mb-4">
+                        <button onClick={() => addSetItem(s.id)} className="text-sm font-medium text-primary hover:underline flex items-center gap-1 mb-4 px-2 py-1">
                           <PlusCircle size={14}/> Add Item
                         </button>
 
@@ -792,10 +795,10 @@ const App = () => {
 
             {/* Step 3: Review */}
             {step === 3 && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 animate-slideUp">
-                <div className="flex justify-between items-center mb-8">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8 animate-slideUp">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                   <h2 className="text-2xl font-bold">Specification Review</h2>
-                  <button onClick={exportExcel} className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold flex items-center gap-2 shadow-sm">
+                  <button onClick={exportExcel} className="w-full md:w-auto px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold flex items-center justify-center gap-2 shadow-sm">
                     <FileSpreadsheet size={20} /> Export to Excel
                   </button>
                 </div>
@@ -815,8 +818,8 @@ const App = () => {
                   </div>
                 </div>
 
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-                  <table className="w-full table-clean">
+                <div className="border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">
+                  <table className="w-full table-clean min-w-[600px]">
                     <thead>
                       <tr><th>Set ID</th><th>Set Name</th><th>Doors</th><th>Items</th><th>Fire Rating</th></tr>
                     </thead>
@@ -851,10 +854,10 @@ const App = () => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center">
               <h3 className="text-xl font-bold">Edit Door</h3>
-              <button onClick={() => setIsDoorModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={24}/></button>
+              <button onClick={() => setIsDoorModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-2"><X size={24}/></button>
             </div>
             <div className="p-6 space-y-6">
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold uppercase text-gray-500">Mark</label>
                   <input type="text" value={doorForm.mark} onChange={e => setDoorForm({...doorForm, mark: e.target.value})} className="p-2 border rounded" />
@@ -872,7 +875,7 @@ const App = () => {
 
               <div className="border-t pt-4">
                 <div className="text-xs font-bold uppercase text-gray-400 mb-4">Physical Dimensions</div>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="text-xs font-bold uppercase text-gray-500">Width (mm)</label>
                     <input type="number" value={doorForm.width} onChange={e => {setDoorForm({...doorForm, width: parseInt(e.target.value)}); validatePhysics('width', e.target.value);}} className={`w-full p-2 border rounded ${doorErrors.width ? 'border-red-300 bg-red-50' : ''}`} />
@@ -891,7 +894,7 @@ const App = () => {
                 {doorHint && <div className="mt-2 text-orange-600 text-sm bg-orange-50 p-2 rounded border border-orange-100 flex items-center gap-2"><AlertTriangle size={14}/> {doorHint}</div>}
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="text-xs font-bold uppercase text-gray-500 mb-2 block">Material</label>
                   <select value={doorForm.material} onChange={e => setDoorForm({...doorForm, material: e.target.value})} className="w-full p-2 border rounded bg-white">
@@ -914,7 +917,7 @@ const App = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold uppercase text-gray-500">Fire Rating</label>
                   <select value={doorForm.fire} onChange={e => setDoorForm({...doorForm, fire: parseInt(e.target.value)})} className="w-full p-2 border rounded bg-white">
@@ -939,7 +942,7 @@ const App = () => {
               </div>
             </div>
             <div className="p-6 border-t border-gray-100 flex justify-end">
-              <button onClick={saveDoor} className="px-6 py-2 bg-primary text-white rounded hover:bg-primary-hover font-bold">Save Door</button>
+              <button onClick={saveDoor} className="w-full md:w-auto px-6 py-2 bg-primary text-white rounded hover:bg-primary-hover font-bold">Save Door</button>
             </div>
           </div>
         </div>
