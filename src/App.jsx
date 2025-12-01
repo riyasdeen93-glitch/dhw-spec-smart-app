@@ -7,7 +7,7 @@ import {
   Menu, ChevronDown, Search, Info, Flame, Accessibility, RotateCcw,
   Eye, Layers, UserCircle, History, Box, Download, Library, MoveHorizontal,
   Lock, Settings, MousePointer, Power, Printer, FileText, Volume2, Scale,
-  BookOpen
+  BookOpen, UploadCloud, Wand2
 } from 'lucide-react';
 
 // --- UTILS ---
@@ -47,34 +47,20 @@ const ACOUSTIC_RECOMMENDATIONS = {
     "Server / IT": 40, "Guest Room Entry": 35, "Unit Entrance (Fire Rated)": 35, "Restroom": 30
 };
 
-// Smart Usage Templates
-const SMART_TEMPLATES = {
-    "prayer": {
-        name: "Prayer / Quiet Room",
-        desc: "Aesthetic, Quiet Operation, Privacy",
-        items: [
-            { category: "Hinges", type: "Concealed Hinge", style: "3D Adjustable", spec: "High Load, 3D Adj", qty: "3" },
-            { category: "Locks", type: "Mortise Lock", style: "Sashlock", spec: "Silent Latch, Roller Bolt", qty: "1" },
-            { category: "Handles", type: "Lever Handle", style: "Return to Door", spec: "Satin Nickel", qty: "1 Pr" },
-            { category: "Closers", type: "Concealed Closer", style: "Overhead Concealed", spec: "Cam-Motion, Cushioned Stop", qty: "1" },
-            { category: "Seals", type: "Drop Seal", style: "Mortised", spec: "Auto Drop, 42dB Acoustic", qty: "1" },
-            { category: "Stops", type: "Door Stop", style: "Floor Mounted Dome", spec: "Dome shape", qty: "1" }
-        ],
-        operation: "Door is self-closing with cushioned stop. Acoustic seal drops upon closing for quiet privacy."
-    },
-    "server": {
-        name: "Server / IT Room",
-        desc: "High Security, Ventilation Control",
-        items: [
-            { category: "Hinges", type: "Butt Hinge", style: "Ball Bearing", spec: "4.5x4.5, Security Pin", qty: "3" },
-            { category: "Locks", type: "Electric Strike", style: "Fail Secure", spec: "Monitored", qty: "1" },
-            { category: "Locks", type: "Mortise Lock", style: "Nightlatch", spec: "Locked outside", qty: "1" },
-            { category: "Handles", type: "Lever Handle", style: "Return to Door", spec: "SS Lever on Rose", qty: "1 Pr" },
-            { category: "Closers", type: "Overhead Closer", style: "Rack & Pinion", spec: "HD, Backcheck, Delayed Action", qty: "1" },
-            { category: "Accessories", type: "Signage", style: "Disc", spec: "'Restricted Access'", qty: "1" }
-        ],
-        operation: "Door is securely locked. Access via access control. Free egress at all times."
-    }
+// BHMA Categorization Helper
+const BHMA_CATEGORIES = {
+    "Hanging": ["Hinges"],
+    "Securing": ["Locks", "Cylinders", "Accessories"], // Flush bolts in accessories
+    "Controlling": ["Closers", "Stops", "Handles"], // Handles control latch
+    "Protecting": ["Seals", "Accessories"] // Kick plates in accessories
+};
+
+const getBHMACategory = (cat) => {
+    if (["Hinges"].includes(cat)) return "Hanging the Door";
+    if (["Locks", "Cylinders"].includes(cat)) return "Securing the Door";
+    if (["Closers", "Stops", "Handles", "Auto Operator"].includes(cat)) return "Controlling the Door";
+    if (["Seals", "Accessories", "Kick Plate", "Threshold"].includes(cat)) return "Protecting the Door";
+    return "Other Hardware";
 };
 
 // Expanded Product Catalog with CSI Codes and Styles
@@ -261,10 +247,10 @@ const AnsiIcon = ({ mode }) => {
   let door = null;
   let dot = null;
 
-  if (mode === 'LH' || mode === 'ISO 5 (Left)') {
+  if (mode === 'LH') {
       door = <rect x="12" y="38" width="60" height="6" transform="rotate(-15 12 41)" fill={doorFill} stroke={doorStroke} strokeWidth="2" />;
       dot = <circle cx="70" cy="30" r="3" fill="red" />;
-  } else if (mode === 'RH' || mode === 'ISO 6 (Right)') {
+  } else if (mode === 'RH') {
       door = <rect x="28" y="38" width="60" height="6" transform="rotate(15 88 41)" fill={doorFill} stroke={doorStroke} strokeWidth="2" />;
       dot = <circle cx="30" cy="30" r="3" fill="red" />;
   } else if (mode === 'LHR') {
@@ -286,6 +272,45 @@ const AnsiIcon = ({ mode }) => {
   );
 };
 
+const EnIcon = ({ mode }) => {
+    // EN DIN ISO Handing Visual
+    // View is from PULL SIDE (Reference side)
+    // ISO 5 (Left) -> Hinges on Left, opens towards viewer (or inward if viewer is outside? No, standard is Pull Side)
+    // Standard: Stand on PULL side. Hinges Left = DIN Left.
+    
+    const doorFill = "white";
+    const doorStroke = "black";
+    
+    let door = null;
+    let arc = null;
+    let knuckle = null;
+
+    // Wall/Frame
+    const wall = <rect x="10" y="45" width="80" height="10" fill="#e2e8f0" />;
+
+    if (mode === 'ISO 5 (Left)') {
+        // Hinge Left, Pulls DOWN (towards viewer)
+        knuckle = <circle cx="15" cy="50" r="4" fill="black" />; // Visible Knuckle Left
+        door = <rect x="15" y="50" width="8" height="40" fill={doorFill} stroke={doorStroke} rx="1" />;
+        arc = <path d="M 55 50 A 40 40 0 0 1 15 90" fill="none" stroke="blue" strokeWidth="1" strokeDasharray="2,2" />;
+    } else if (mode === 'ISO 6 (Right)') {
+        // Hinge Right, Pulls DOWN
+        knuckle = <circle cx="85" cy="50" r="4" fill="black" />; // Visible Knuckle Right
+        door = <rect x="77" y="50" width="8" height="40" fill={doorFill} stroke={doorStroke} rx="1" />;
+        arc = <path d="M 45 50 A 40 40 0 0 0 85 90" fill="none" stroke="blue" strokeWidth="1" strokeDasharray="2,2" />;
+    }
+
+    return (
+        <g>
+            {wall}
+            {door}
+            {arc}
+            {knuckle}
+            <text x="50" y="20" textAnchor="middle" fontSize="10" fill="#666">PULL SIDE VIEW</text>
+        </g>
+    );
+};
+
 const HandingSelector = ({ value, onChange, standard }) => {
   const ansiOptions = [
     { id: 'LH', label: 'Left Hand (LH)', desc: 'Hinges left, opens in' },
@@ -295,8 +320,8 @@ const HandingSelector = ({ value, onChange, standard }) => {
   ];
 
   const enOptions = [
-    { id: 'LH', label: 'ISO 5 (Left)', desc: 'Hinges Left (Pull Side)' },
-    { id: 'RH', label: 'ISO 6 (Right)', desc: 'Hinges Right (Pull Side)' }
+    { id: 'LH', label: 'ISO 5 (Left)', desc: 'Hinges on Left (Pull Side)' },
+    { id: 'RH', label: 'ISO 6 (Right)', desc: 'Hinges on Right (Pull Side)' }
   ];
 
   const options = standard === 'EN' ? enOptions : ansiOptions;
@@ -309,8 +334,8 @@ const HandingSelector = ({ value, onChange, standard }) => {
           onClick={() => onChange(opt.id === 'LH' || opt.id === 'ISO 5 (Left)' ? 'LH' : opt.id === 'RH' || opt.id === 'ISO 6 (Right)' ? 'RH' : opt.id)}
           className={`border rounded p-2 flex items-center gap-2 cursor-pointer transition-colors ${value === (opt.id.includes('Left') ? 'LH' : opt.id.includes('Right') ? 'RH' : opt.id) ? 'border-indigo-600 bg-indigo-50 ring-1 ring-indigo-600' : 'hover:bg-gray-50 border-gray-200'}`}
         >
-          <svg width="50" height="50" viewBox="0 0 100 100" className="text-gray-600 shrink-0 bg-white border border-gray-100 rounded">
-             <AnsiIcon mode={standard === 'EN' ? opt.label : opt.id} />
+          <svg width="60" height="60" viewBox="0 0 100 100" className="text-gray-600 shrink-0 bg-white border border-gray-100 rounded">
+             {standard === 'EN' ? <EnIcon mode={opt.label} /> : <AnsiIcon mode={opt.id} />}
           </svg>
           <div className="flex flex-col">
             <span className={`text-xs font-bold ${value === opt.id ? 'text-indigo-700' : 'text-gray-700'}`}>{opt.label}</span>
@@ -329,16 +354,14 @@ const DoorPreview = ({ door, hardwareSet }) => {
   const isMetal = door.material === 'Metal';
   const hasVision = door.visionPanel;
   
-  let doorFill = '#f9f9f9'; 
-  let doorStroke = '#ccc';
-  let frameColor = '#64748b';
-  let frameStrokeWidth = 4;
-
+  let doorFill = '#d4a373'; // Wood Default
+  let doorStroke = '#a98467';
+  let frameColor = '#8a6a4b';
+  
   if (isGlass) {
     doorFill = '#e0f2fe'; 
     doorStroke = '#bae6fd';
-    frameColor = 'none'; 
-    frameStrokeWidth = 0;
+    frameColor = '#cbd5e1'; // Minimal frame or wall
   } else if (isAluminum) {
     doorFill = '#f0f9ff'; 
     doorStroke = '#94a3b8'; 
@@ -347,95 +370,105 @@ const DoorPreview = ({ door, hardwareSet }) => {
     doorFill = '#fca5a5'; 
     doorStroke = '#ef4444';
     frameColor = '#7f1d1d';
-  } else {
-    doorFill = '#d4a373'; 
-    doorStroke = '#a98467';
-    frameColor = '#8a6a4b';
   }
   
   const hasPanic = hardwareSet?.items?.some(i => i.type.includes('Panic'));
-  const hasKick = hardwareSet?.items?.some(i => i.type.includes('Kick'));
+  const hasKick = hardwareSet?.items?.some(i => i.type.includes('Kick') || i.type.includes('Protection'));
   const hasCloser = hardwareSet?.items?.some(i => i.type.includes('Closer') || i.type.includes('Floor Spring'));
   const hasPull = hardwareSet?.items?.some(i => i.type.includes('Pull'));
   const isFloorSpring = hardwareSet?.items?.some(i => i.type.includes('Floor Spring'));
-
+  const hasLouver = hardwareSet?.items?.some(i => i.type.includes('Louver')); // Not standard item but for visualization
+  
   const handing = door.handing || 'RH';
-  const hingeSide = handing.startsWith('L') ? 'left' : 'right';
 
-  const DoorLeaf = ({ x, leafHanding }) => {
+  const DoorLeaf = ({ x, leafHanding, isInactive }) => {
     const leafHinge = leafHanding === 'LH' ? 'left' : 'right';
     const handleX = leafHinge === 'left' ? 75 : 15;
     
     return (
       <g transform={`translate(${x}, 0)`}>
+        {/* Door Slab */}
         <rect x="5" y="5" width="90" height="190" fill={doorFill} stroke={doorStroke} strokeWidth="2" />
-        {isAluminum && <rect x="15" y="15" width="70" height="170" fill="#e0f2fe" stroke={doorStroke} strokeWidth="1" />}
-        {hasVision && !isGlass && !isAluminum && <rect x="25" y="30" width="50" height="80" fill="#e0f2fe" stroke="#bae6fd" strokeWidth="2" />}
         
-        {isFloorSpring && (
-           <>
-             <rect x="5" y="192" width="20" height="6" fill="#666" />
-             <rect x="5" y="2" width="20" height="6" fill="#666" />
-           </>
+        {/* Lite Kit Frame */}
+        {hasVision && !isGlass && (
+             <rect x="25" y="30" width="40" height="80" fill="#e0f2fe" stroke="#333" strokeWidth="1" />
+        )}
+        
+        {/* Louver (if implied or added) - Visual placeholder if needed, e.g. Metal doors often have louvers at bottom */}
+        {isMetal && !hasVision && (
+             <g transform="translate(15, 140)">
+                 <rect x="0" y="0" width="60" height="30" fill="none" stroke="#666" />
+                 <line x1="0" y1="5" x2="60" y2="5" stroke="#666" />
+                 <line x1="0" y1="10" x2="60" y2="10" stroke="#666" />
+                 <line x1="0" y1="15" x2="60" y2="15" stroke="#666" />
+                 <line x1="0" y1="20" x2="60" y2="20" stroke="#666" />
+                 <line x1="0" y1="25" x2="60" y2="25" stroke="#666" />
+             </g>
         )}
 
+        {/* Astragal for Double Doors (Inactive Leaf) */}
+        {isInactive && isDouble && (
+            <rect x={leafHinge === 'left' ? 88 : 0} y="5" width="4" height="190" fill="#666" />
+        )}
+        
+        {/* Hinge Visuals (3 standard) */}
+        <rect x={leafHinge === 'left' ? 3 : 93} y="20" width="4" height="8" fill="#999" />
+        <rect x={leafHinge === 'left' ? 3 : 93} y="95" width="4" height="8" fill="#999" />
+        <rect x={leafHinge === 'left' ? 3 : 93} y="170" width="4" height="8" fill="#999" />
+
         {/* Closer Body & Arm */}
-        {hasCloser && !isFloorSpring && (
+        {hasCloser && !isFloorSpring && !isInactive && (
           <g transform={leafHinge === 'left' ? "translate(10, 10)" : "translate(50, 10)"}>
-            <rect x="0" y="0" width="30" height="10" fill="#475569" rx="1" />
-            <path d={leafHinge === 'left' ? "M 15 5 L 45 25" : "M 15 5 L -15 25"} stroke="#475569" strokeWidth="3" strokeLinecap="round" />
+            <rect x="0" y="0" width="30" height="10" fill="#374151" rx="2" />
+            <path d={leafHinge === 'left' ? "M 15 5 L 45 25" : "M 15 5 L -15 25"} stroke="#374151" strokeWidth="3" strokeLinecap="round" />
           </g>
         )}
 
+        {/* Lock/Handle Area */}
         <g transform={`translate(${handleX}, 100)`}>
           {hasPanic ? (
-            <rect x={leafHinge === 'left' ? -5 : -65} y="-5" width="70" height="12" rx="2" fill="#d1d5db" stroke="#6b7280" />
+            <rect x={leafHinge === 'left' ? -5 : -65} y="-5" width="70" height="12" rx="1" fill="#cbd5e1" stroke="#475569" />
           ) : hasPull ? (
              <rect x="-2" y="-20" width="4" height="40" rx="2" fill="#64748b" />
           ) : (
             <g>
-                <circle cx="0" cy="0" r="5" fill="#e2e8f0" stroke="#64748b" strokeWidth="1"/> 
-                <rect x={leafHinge === 'left' ? -12 : 2} y="-2" width="10" height="4" fill="#64748b" rx="1"/>
+                {/* Rose & Lever */}
+                <circle cx="0" cy="0" r="6" fill="#e2e8f0" stroke="#64748b" strokeWidth="1"/> 
+                <rect x={leafHinge === 'left' ? -14 : 2} y="-3" width="12" height="6" fill="#64748b" rx="2"/>
             </g>
           )}
         </g>
-
-        {hasKick && <rect x="10" y="170" width="80" height="20" fill="url(#diagonalHatch)" stroke="#9ca3af" />}
         
-        <defs>
-            <pattern id="diagonalHatch" patternUnits="userSpaceOnUse" width="4" height="4">
-            <path d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2" stroke="#cbd5e1" strokeWidth="1" />
-            </pattern>
-        </defs>
+        {/* Protection Plate */}
+        {hasKick && <rect x="10" y="165" width="80" height="25" fill="#9ca3af" opacity="0.5" stroke="#4b5563" />}
 
-        <path 
-            d={leafHinge === 'left' ? "M 5 5 L 85 100 L 5 195" : "M 95 5 L 15 100 L 95 195"} 
-            fill="none" 
-            stroke={isGlass ? "#60a5fa" : "#000"} 
-            strokeOpacity="0.1" 
-            strokeWidth="1" 
-            strokeDasharray="4,2"
-        />
+        {/* Threshold/Sweep at bottom */}
+        <rect x="5" y="193" width="90" height="4" fill="#333" />
+
       </g>
     );
   };
 
   return (
     <div className="flex flex-col items-center">
-      <svg width="220" height="240" viewBox="0 0 220 240" className="bg-white rounded-lg border border-gray-100 shadow-sm p-2">
-        <rect x="0" y="0" width={isDouble ? 220 : 120} height="200" fill="none" stroke={frameColor} strokeWidth={frameStrokeWidth} />
+      <svg width="240" height="260" viewBox="0 0 240 260" className="bg-white rounded-lg border border-gray-100 shadow-sm p-2">
+        {/* Frame Head */}
+        <rect x="0" y="0" width={isDouble ? 240 : 130} height="200" fill="none" stroke={frameColor} strokeWidth="6" />
+        {/* Frame Jambs are implied by stroke */}
+        
         {isDouble ? (
             <>
-                <DoorLeaf x={10} leafHanding="LH" />
-                <DoorLeaf x={110} leafHanding="RH" />
+                <DoorLeaf x={15} leafHanding="LH" isInactive={true} />
+                <DoorLeaf x={115} leafHanding="RH" />
             </>
         ) : (
-            <DoorLeaf x={10} leafHanding={hingeSide === 'left' ? 'LH' : 'RH'} />
+            <DoorLeaf x={15} leafHanding={handing.includes('L') ? 'LH' : 'RH'} />
         )}
       </svg>
       <div className="mt-2 text-xs text-gray-500 font-medium text-center">
         {door.config} {door.material} <br/>
-        <span className="text-indigo-600 font-bold">{handing}</span> {hasVision ? '+ Vision' : ''}
+        <span className="text-indigo-600 font-bold">{handing}</span> {hasVision ? '+ Lite Kit' : ''}
       </div>
     </div>
   );
@@ -483,32 +516,9 @@ const LandingPage = ({ onStart, hasProjects }) => (
       </div>
       
       <div className="flex-1 relative perspective-1500 w-full max-w-lg hidden md:block">
+        {/* Visual Placeholder for Landing Page */}
         <div className="bg-white rounded-xl shadow-2xl p-6 border border-white/80 transform-3d-card animate-float">
-          <div className="flex justify-between mb-4 border-b border-slate-100 pb-2">
-            <div className="font-bold text-slate-800">Door Schedule</div>
-            <div className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs font-bold">ANSI Mode</div>
-          </div>
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <div className="h-2 bg-slate-200 rounded"></div>
-            <div className="h-2 bg-slate-100 rounded"></div>
-            <div className="h-2 bg-slate-100 rounded"></div>
-          </div>
-          <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg border border-slate-200 mb-2">
-            <div className="w-8 h-8 bg-indigo-100 rounded flex items-center justify-center text-indigo-600"><DoorClosed size={18} /></div>
-            <div className="flex-1">
-              <div className="h-1.5 w-3/5 bg-slate-400 rounded mb-1"></div>
-              <div className="h-1 w-2/5 bg-slate-300 rounded"></div>
-            </div>
-            <div className="bg-orange-50 text-orange-600 px-2 py-0.5 rounded text-xs font-bold border border-orange-100">45 min</div>
-          </div>
-          <div className="flex items-center gap-4 p-3 bg-white rounded-lg border border-slate-200">
-            <div className="w-8 h-8 bg-slate-100 rounded flex items-center justify-center text-slate-500"><DoorOpen size={18} /></div>
-            <div className="flex-1">
-              <div className="h-1.5 w-1/2 bg-slate-300 rounded mb-1"></div>
-              <div className="h-1 w-1/3 bg-slate-200 rounded"></div>
-            </div>
-            <div className="bg-gray-50 text-gray-500 px-2 py-0.5 rounded text-xs font-bold border border-gray-100">NFR</div>
-          </div>
+            <div className="h-40 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400">3D Product Preview</div>
         </div>
       </div>
     </section>
@@ -525,6 +535,7 @@ const App = () => {
   const [userRole, setUserRole] = useState('Architect');
   const [library, setLibrary] = useState([]);
   const [printMode, setPrintMode] = useState(false);
+  const [exportStatus, setExportStatus] = useState('');
   
   // Door Modal State (Hierarchical Location)
   const [doorForm, setDoorForm] = useState({
@@ -839,160 +850,73 @@ const App = () => {
     }
   };
 
-  const exportData = () => {
-    const p = getProj();
-    // Simple XML Spreadsheet generation for multi-sheet support
-    const xmlBody = `
-      <?xml version="1.0"?>
-      <?mso-application progid="Excel.Sheet"?>
-      <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
-      xmlns:o="urn:schemas-microsoft-com:office:office"
-      xmlns:x="urn:schemas-microsoft-com:office:excel"
-      xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
-      xmlns:html="http://www.w3.org/TR/REC-html40">
-      
-      <Styles>
-          <Style ss:ID="Default" ss:Name="Normal">
-              <Alignment ss:Vertical="Bottom"/>
-              <Borders/>
-              <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#000000"/>
-              <Interior/>
-              <NumberFormat/>
-              <Protection/>
-          </Style>
-          <Style ss:ID="sHeader">
-              <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="11" ss:Color="#FFFFFF" ss:Bold="1"/>
-              <Interior ss:Color="#4F46E5" ss:Pattern="Solid"/>
-          </Style>
-          <Style ss:ID="sTitle">
-             <Font ss:FontName="Calibri" x:Family="Swiss" ss:Size="14" ss:Bold="1"/>
-          </Style>
-      </Styles>
+  const exportData = async () => {
+    setExportStatus('Generating...');
+    try {
+      const XLSX = await import("https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs");
+      const p = getProj();
+      const wb = XLSX.utils.book_new();
 
-      <Worksheet ss:Name="Hardware Specs">
-        <Table>
-          <Row><Cell ss:StyleID="sTitle"><Data ss:Type="String">Project: ${p.name}</Data></Cell></Row>
-          <Row><Cell><Data ss:Type="String">Standard: ${p.standard} | Jurisdiction: ${p.details?.jurisdiction}</Data></Cell></Row>
-          <Row><Cell><Data ss:Type="String"></Data></Cell></Row>
-          
-          <Row>
-            <Cell ss:StyleID="sHeader"><Data ss:Type="String">Set</Data></Cell>
-            <Cell ss:StyleID="sHeader"><Data ss:Type="String">Set Name</Data></Cell>
-            <Cell ss:StyleID="sHeader"><Data ss:Type="String">Ref</Data></Cell>
-            <Cell ss:StyleID="sHeader"><Data ss:Type="String">Category</Data></Cell>
-            <Cell ss:StyleID="sHeader"><Data ss:Type="String">Product Type</Data></Cell>
-            <Cell ss:StyleID="sHeader"><Data ss:Type="String">Style</Data></Cell>
-            <Cell ss:StyleID="sHeader"><Data ss:Type="String">Finish</Data></Cell>
-            <Cell ss:StyleID="sHeader"><Data ss:Type="String">Spec</Data></Cell>
-            <Cell ss:StyleID="sHeader"><Data ss:Type="String">Qty</Data></Cell>
-          </Row>
-          ${p.sets.flatMap(s => (s.items || []).map(i => `
-            <Row>
-              <Cell><Data ss:Type="String">${s.id}</Data></Cell>
-              <Cell><Data ss:Type="String">${s.name}</Data></Cell>
-              <Cell><Data ss:Type="String">${i.ref}</Data></Cell>
-              <Cell><Data ss:Type="String">${i.category}</Data></Cell>
-              <Cell><Data ss:Type="String">${i.type}</Data></Cell>
-              <Cell><Data ss:Type="String">${i.style || ''}</Data></Cell>
-              <Cell><Data ss:Type="String">${i.finish}</Data></Cell>
-              <Cell><Data ss:Type="String">${i.spec}</Data></Cell>
-              <Cell><Data ss:Type="String">${i.qty}</Data></Cell>
-            </Row>
-          `)).join('')}
-        </Table>
-      </Worksheet>
+      const createSheetWithHeader = (data, sheetName) => {
+        const headerRows = [
+          [`PROJECT: ${p.name}`],
+          [`CLIENT: ${p.details?.client || ''}`, `ARCHITECT: ${p.details?.architect || ''}`],
+          [`FACILITY: ${p.type}`, `JURISDICTION: ${p.details?.jurisdiction || ''}`],
+          [`STANDARD: ${p.standard}`, `DATE: ${new Date().toLocaleDateString()}`],
+          []
+        ];
+        const ws = XLSX.utils.json_to_sheet(data, { origin: "A6" });
+        XLSX.utils.sheet_add_aoa(ws, headerRows, { origin: "A1" });
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      };
 
-      <Worksheet ss:Name="Door Schedule">
-        <Table>
-          <Row><Cell ss:StyleID="sTitle"><Data ss:Type="String">Door Schedule</Data></Cell></Row>
-          <Row><Cell><Data ss:Type="String"></Data></Cell></Row>
-          <Row>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">Mark</Data></Cell>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">Zone</Data></Cell>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">Level</Data></Cell>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">Room</Data></Cell>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">Qty</Data></Cell>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">Width</Data></Cell>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">Height</Data></Cell>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">Thk</Data></Cell>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">Fire Rating</Data></Cell>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">Acoustic</Data></Cell>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">Material</Data></Cell>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">Config</Data></Cell>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">Handing</Data></Cell>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">HW Set</Data></Cell>
-          </Row>
-          ${p.doors.map(d => `
-             <Row>
-               <Cell><Data ss:Type="String">${d.mark}</Data></Cell>
-               <Cell><Data ss:Type="String">${d.zone}</Data></Cell>
-               <Cell><Data ss:Type="String">${d.level}</Data></Cell>
-               <Cell><Data ss:Type="String">${d.roomName}</Data></Cell>
-               <Cell><Data ss:Type="Number">${d.qty}</Data></Cell>
-               <Cell><Data ss:Type="Number">${d.width}</Data></Cell>
-               <Cell><Data ss:Type="Number">${d.height}</Data></Cell>
-               <Cell><Data ss:Type="Number">${d.thickness}</Data></Cell>
-               <Cell><Data ss:Type="String">${d.fire > 0 ? d.fire + ' min' : 'NFR'}</Data></Cell>
-               <Cell><Data ss:Type="String">${d.stc ? d.stc + ' dB' : 'N/A'}</Data></Cell>
-               <Cell><Data ss:Type="String">${d.material}</Data></Cell>
-               <Cell><Data ss:Type="String">${d.config}</Data></Cell>
-               <Cell><Data ss:Type="String">${d.handing}</Data></Cell>
-               <Cell><Data ss:Type="String">${p.sets.find(s => s.doors.includes(d.id))?.id || 'None'}</Data></Cell>
-             </Row>
-          `).join('')}
-        </Table>
-      </Worksheet>
+      const doorData = p.doors.map(d => ({
+        "Mark": d.mark, "Zone": d.zone, "Level": d.level, "Room": d.roomName,
+        "Qty": d.qty, "Width": d.width, "Height": d.height, "Thk": d.thickness,
+        "Fire": d.fire > 0 ? `${d.fire} min` : 'NFR', "Acoustic": d.stc ? `${d.stc} dB` : 'N/A',
+        "Material": d.material, "Config": d.config, "Handing": d.handing,
+        "HW Set": p.sets.find(s => s.doors.includes(d.id))?.id || 'None'
+      }));
+      createSheetWithHeader(doorData, "Door Schedule");
 
-      <Worksheet ss:Name="BOM">
-        <Table>
-           <Row><Cell ss:StyleID="sTitle"><Data ss:Type="String">Bill of Materials</Data></Cell></Row>
-           <Row><Cell><Data ss:Type="String"></Data></Cell></Row>
-           <Row>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">Category</Data></Cell>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">Product Type</Data></Cell>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">Style</Data></Cell>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">Spec</Data></Cell>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">Finish</Data></Cell>
-             <Cell ss:StyleID="sHeader"><Data ss:Type="String">Total Qty</Data></Cell>
-           </Row>
-           ${(() => {
-               // BOM Logic Calculation
-               const bom = {};
-               p.sets.forEach(s => {
-                   const doorsInSet = p.doors.filter(d => s.doors.includes(d.id));
-                   const totalDoors = doorsInSet.reduce((sum, d) => sum + d.qty, 0);
-                   (s.items || []).forEach(i => {
-                       const key = `${i.category}|${i.type}|${i.style}|${i.spec}|${i.finish}`;
-                       if (!bom[key]) bom[key] = { ...i, total: 0 };
-                       // Parse quantity (handle "1 Pr" or text)
-                       let q = parseFloat(i.qty);
-                       if (isNaN(q)) q = 1;
-                       bom[key].total += (q * totalDoors);
-                   });
-               });
-               return Object.values(bom).map(i => `
-                   <Row>
-                     <Cell><Data ss:Type="String">${i.category}</Data></Cell>
-                     <Cell><Data ss:Type="String">${i.type}</Data></Cell>
-                     <Cell><Data ss:Type="String">${i.style || ''}</Data></Cell>
-                     <Cell><Data ss:Type="String">${i.spec}</Data></Cell>
-                     <Cell><Data ss:Type="String">${i.finish}</Data></Cell>
-                     <Cell><Data ss:Type="Number">${i.total}</Data></Cell>
-                   </Row>
-               `).join('');
-           })()}
-        </Table>
-      </Worksheet>
-      </Workbook>
-    `;
+      const hwData = [];
+      p.sets.forEach(s => {
+        (s.items || []).forEach(i => {
+          hwData.push({
+            "Set": s.id, "Set Name": s.name, "Ref": i.ref, "Category": i.category,
+            "Type": i.type, "Style": i.style, "Finish": i.finish, "Spec": i.spec, "Qty": i.qty
+          });
+        });
+      });
+      createSheetWithHeader(hwData, "Hardware Specs");
 
-    const blob = new Blob([xmlBody], { type: 'application/vnd.ms-excel' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${p.name.replace(/\s+/g, '_')}_Complete_Schedule.xls`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const bomMap = {};
+      p.sets.forEach(s => {
+        const doorCount = p.doors.filter(d => s.doors.includes(d.id)).reduce((sum, d) => sum + d.qty, 0);
+        (s.items || []).forEach(i => {
+           const key = `${i.category}_${i.type}_${i.spec}_${i.finish}`;
+           if (!bomMap[key]) {
+             bomMap[key] = {
+               "Category": i.category, "Type": i.type, "Style": i.style,
+               "Spec": i.spec, "Finish": i.finish, "Total Qty": 0
+             };
+           }
+           let q = parseFloat(i.qty);
+           if (isNaN(q)) q = 1;
+           bomMap[key]["Total Qty"] += (q * doorCount);
+        });
+      });
+      createSheetWithHeader(Object.values(bomMap), "Bill of Materials");
+
+      XLSX.writeFile(wb, `${p.name.replace(/\s+/g, '_')}_Schedule_v2.xlsx`);
+      setExportStatus('');
+      setSaveStatus('Exported!');
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Failed to generate Excel file. Please check your internet connection (loading external engine).");
+      setExportStatus('');
+      setSaveStatus('Error');
+    }
   };
 
   const exportBIMData = () => {
@@ -1038,14 +962,11 @@ const App = () => {
       let items = [];
       const addItem = (cat, ref, type, style, spec, qty) => items.push({ category: cat, ref, type, style, spec, qty, finish: defaultFinish });
 
-      // Hinge Quantity Logic
       let hingeQty = 3;
       if (rep.height > 2300) hingeQty = 4;
       if (rep.weight > 120) hingeQty = 4;
       if (rep.height > 2300 && rep.weight > 120) hingeQty = 5;
 
-      // ... (Standard logic adjusted for new structure)
-      // This is a simplified rebuild of the logic engine to match new table structure
       if (material === "Glass") {
           addItem("Hinges", "P01", "Patch Fitting", "Top Patch", "SS Patch", "1");
           addItem("Hinges", "P02", "Patch Fitting", "Bottom Patch", "SS Patch", "1");
@@ -1053,7 +974,6 @@ const App = () => {
           addItem("Handles", "H01", "Pull Handle", "D-Pull", "600mm ctc", "1 Pr");
           addItem("Closers", "D01", "Floor Spring", "Double Action", "EN 1-4", "1");
       } else {
-          // Standard Door
           const hingeType = proj.standard === "ANSI" ? "4.5x4.5" : "102x76x3";
           addItem("Hinges", "H01", "Butt Hinge", "Ball Bearing", `${hingeType}, SS`, hingeQty.toString());
           
@@ -1092,7 +1012,6 @@ const App = () => {
           if (s.id === setId) {
             const newItems = [...s.items];
             newItems[idx] = { ...newItems[idx], [field]: val };
-            // Auto-Style Logic can be added here if needed
             return { ...s, items: newItems };
           }
           return s;
@@ -1190,7 +1109,6 @@ const App = () => {
     setProjects(updatedProjects);
   };
 
-  // Improved Code Guardian Logic
   const getValidationIssues = () => {
       const proj = getProj();
       const issues = [];
@@ -1257,6 +1175,7 @@ const App = () => {
                           <table className="w-full text-sm border-collapse">
                               <thead>
                                   <tr className="bg-gray-100 border-b border-gray-400">
+                                      <th className="text-left p-2">Category</th>
                                       <th className="text-left p-2">Item</th>
                                       <th className="text-left p-2">Description</th>
                                       <th className="text-left p-2">Finish</th>
@@ -1264,10 +1183,30 @@ const App = () => {
                                   </tr>
                               </thead>
                               <tbody>
-                                  {s.items.map((item, i) => (
-                                      <tr key={i} className="border-b border-gray-200">
-                                          <td className="p-2 font-bold">{item.category}</td>
-                                          <td className="p-2">{item.type} - {item.spec}</td>
+                                  {Object.keys(BHMA_CATEGORIES).map(catGroup => {
+                                      const itemsInGroup = s.items.filter(i => BHMA_CATEGORIES[catGroup].includes(i.category));
+                                      if (itemsInGroup.length === 0) return null;
+                                      return (
+                                          <React.Fragment key={catGroup}>
+                                              <tr className="bg-gray-50"><td colSpan="5" className="p-1 pl-2 font-bold text-xs uppercase text-gray-500 border-b">{catGroup}</td></tr>
+                                              {itemsInGroup.map((item, i) => (
+                                                  <tr key={i} className="border-b border-gray-200">
+                                                      <td className="p-2 text-xs text-gray-400">{item.category}</td>
+                                                      <td className="p-2 font-bold">{item.type}</td>
+                                                      <td className="p-2">{item.style} - {item.spec}</td>
+                                                      <td className="p-2">{item.finish}</td>
+                                                      <td className="text-center p-2">{item.qty}</td>
+                                                  </tr>
+                                              ))}
+                                          </React.Fragment>
+                                      );
+                                  })}
+                                  {/* Catch-all for uncategorized */}
+                                  {s.items.filter(i => !Object.values(BHMA_CATEGORIES).flat().includes(i.category)).map((item, i) => (
+                                      <tr key={'other-'+i} className="border-b border-gray-200">
+                                          <td className="p-2 text-xs text-gray-400">{item.category}</td>
+                                          <td className="p-2 font-bold">{item.type}</td>
+                                          <td className="p-2">{item.style} - {item.spec}</td>
                                           <td className="p-2">{item.finish}</td>
                                           <td className="text-center p-2">{item.qty}</td>
                                       </tr>
@@ -1298,7 +1237,7 @@ const App = () => {
           <span>SpecSmart <span className="text-xs text-gray-400 font-normal ml-2">v2.0 Enterprise</span></span>
         </div>
         <div className="flex gap-4 items-center">
-            {view === 'wizard' && <span className="text-xs text-gray-400">{saveStatus}</span>}
+            {view === 'wizard' && <span className="text-xs text-gray-400">{exportStatus || saveStatus}</span>}
             <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-2 py-1">
                 <UserCircle size={16} className="text-gray-500" />
                 <select 
@@ -1307,8 +1246,7 @@ const App = () => {
                     className="bg-transparent border-none text-sm font-medium focus:ring-0 cursor-pointer"
                 >
                     <option value="Architect">Architect View</option>
-                    <option value="Owner">Owner View</option>
-                    <option value="Contractor">Contractor View</option>
+                    <option value="Contractor" disabled>Contractor View (Coming Soon)</option>
                 </select>
             </div>
 
@@ -1399,6 +1337,23 @@ const App = () => {
                   </button>
                 </div>
               ))}
+            </div>
+            
+            {/* Feature 1: Coming Soon Placeholders */}
+            <div className="mt-8 pt-8 border-t border-gray-200">
+                <h3 className="font-bold text-gray-500 uppercase text-sm mb-4">Coming Soon Features</h3>
+                <div className="flex gap-4">
+                    <div className="flex-1 p-6 border border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 bg-gray-50">
+                        <UploadCloud size={24} className="mb-2"/>
+                        <span className="font-bold">Upload Floor Plan</span>
+                        <span className="text-xs">AI Extraction</span>
+                    </div>
+                    <div className="flex-1 p-6 border border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 bg-gray-50">
+                        <Wand2 size={24} className="mb-2"/>
+                        <span className="font-bold">Instant Schedule</span>
+                        <span className="text-xs">One-click Generation</span>
+                    </div>
+                </div>
             </div>
           </div>
         )}
@@ -1629,48 +1584,77 @@ const App = () => {
                                     <div className="grid grid-cols-[30px_60px_60px_140px_140px_100px_1fr_60px_40px] bg-gray-50 border-b border-gray-200 p-3 text-xs font-bold text-gray-500 uppercase">
                                     <div></div><div>Ref</div><div>CSI</div><div>Product Type</div><div>Style</div><div>Finish</div><div>Specification</div><div>Qty</div><div></div>
                                     </div>
-                                    {s.items.map((item, idx) => {
-                                    const cat = item.category || "Hinges";
-                                    const catData = PRODUCT_CATALOG[cat];
-                                    const styles = catData?.types.find(t => t.name === item.type)?.styles || [];
-                                    const finishes = FINISHES[getProj().standard];
+                                    {/* Feature 4: Categorized Hardware List */}
+                                    {Object.keys(BHMA_CATEGORIES).map(catGroup => {
+                                        const groupItems = s.items.filter(i => BHMA_CATEGORIES[catGroup].includes(i.category));
+                                        if (groupItems.length === 0) return null;
+                                        
+                                        return (
+                                            <React.Fragment key={catGroup}>
+                                                <div className="bg-gray-100 p-1 pl-2 font-bold text-xs text-gray-500 uppercase border-b border-gray-200 col-span-full" style={{ gridColumn: "1 / -1" }}>
+                                                    {getBHMACategory(groupItems[0].category)}
+                                                </div>
+                                                {groupItems.map((item, idx) => {
+                                                    // Find original index in s.items for update logic
+                                                    const originalIndex = s.items.indexOf(item);
+                                                    const cat = item.category || "Hinges";
+                                                    const catData = PRODUCT_CATALOG[cat];
+                                                    const styles = catData?.types.find(t => t.name === item.type)?.styles || [];
+                                                    const finishes = FINISHES[getProj().standard];
 
-                                    return (
-                                        <div key={idx} className="grid grid-cols-[30px_60px_60px_140px_140px_100px_1fr_60px_40px] border-b border-gray-100 p-2 items-center hover:bg-gray-50 relative">
-                                        <div className="flex justify-center text-gray-400"><HardwareIcon category={cat} /></div>
-                                        {/* Owner View: Read Only */}
-                                        {userRole === 'Owner' ? (
-                                            <>
-                                                <div className="text-sm font-medium text-gray-900">{item.ref}</div>
-                                                <div className="text-xs text-gray-400">{catData?.csi || ""}</div>
-                                                <div className="text-sm text-gray-600">{item.type}</div>
-                                                <div className="text-sm text-gray-600">{item.style}</div>
-                                                <div className="text-sm text-gray-600">{item.finish}</div>
-                                                <div className="text-sm text-gray-500">{item.spec}</div>
-                                                <div className="text-sm text-gray-900">{item.qty}</div>
-                                                <div></div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <input type="text" value={item.ref} onChange={(e) => updateSetItem(s.id, idx, 'ref', e.target.value)} className="w-full p-1 border rounded text-xs" />
-                                                <div className="text-xs text-gray-400">{catData?.csi || ""}</div>
-                                                <select value={item.type} onChange={(e) => updateSetItem(s.id, idx, 'type', e.target.value)} className="w-full p-1 border rounded text-xs bg-white">
-                                                    {catData?.types.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
-                                                </select>
-                                                <select value={item.style} onChange={(e) => updateSetItem(s.id, idx, 'style', e.target.value)} className="w-full p-1 border rounded text-xs bg-white">
-                                                    {styles.map(st => <option key={st} value={st}>{st}</option>)}
-                                                </select>
-                                                <select value={item.finish} onChange={(e) => updateSetItem(s.id, idx, 'finish', e.target.value)} className="w-full p-1 border rounded text-xs bg-white">
-                                                    {finishes.map(f => <option key={f} value={f}>{f}</option>)}
-                                                </select>
-                                                <input type="text" value={item.spec} onChange={(e) => updateSetItem(s.id, idx, 'spec', e.target.value)} className="w-full p-1 border rounded text-xs" />
-                                                <input type="text" value={item.qty} onChange={(e) => updateSetItem(s.id, idx, 'qty', e.target.value)} className="w-full p-1 border rounded text-xs" />
-                                                <button onClick={() => deleteSetItem(s.id, idx)} className="text-red-400 hover:text-red-600 flex justify-center p-2"><Trash2 size={14}/></button>
-                                            </>
-                                        )}
-                                        </div>
-                                    );
+                                                    return (
+                                                        <div key={idx} className="grid grid-cols-[30px_60px_60px_140px_140px_100px_1fr_60px_40px] border-b border-gray-100 p-2 items-center hover:bg-gray-50 relative">
+                                                            <div className="flex justify-center text-gray-400"><HardwareIcon category={cat} /></div>
+                                                            {/* Owner View: Read Only */}
+                                                            {userRole === 'Owner' ? (
+                                                                <>
+                                                                    <div className="text-sm font-medium text-gray-900">{item.ref}</div>
+                                                                    <div className="text-xs text-gray-400">{catData?.csi || ""}</div>
+                                                                    <div className="text-sm text-gray-600">{item.type}</div>
+                                                                    <div className="text-sm text-gray-600">{item.style}</div>
+                                                                    <div className="text-sm text-gray-600">{item.finish}</div>
+                                                                    <div className="text-sm text-gray-500">{item.spec}</div>
+                                                                    <div className="text-sm text-gray-900">{item.qty}</div>
+                                                                    <div></div>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <input type="text" value={item.ref} onChange={(e) => updateSetItem(s.id, originalIndex, 'ref', e.target.value)} className="w-full p-1 border rounded text-xs" />
+                                                                    <div className="text-xs text-gray-400">{catData?.csi || ""}</div>
+                                                                    <select value={item.type} onChange={(e) => updateSetItem(s.id, originalIndex, 'type', e.target.value)} className="w-full p-1 border rounded text-xs bg-white">
+                                                                        {catData?.types.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
+                                                                    </select>
+                                                                    <select value={item.style} onChange={(e) => updateSetItem(s.id, originalIndex, 'style', e.target.value)} className="w-full p-1 border rounded text-xs bg-white">
+                                                                        {styles.map(st => <option key={st} value={st}>{st}</option>)}
+                                                                    </select>
+                                                                    <select value={item.finish} onChange={(e) => updateSetItem(s.id, originalIndex, 'finish', e.target.value)} className="w-full p-1 border rounded text-xs bg-white">
+                                                                        {finishes.map(f => <option key={f} value={f}>{f}</option>)}
+                                                                    </select>
+                                                                    <input type="text" value={item.spec} onChange={(e) => updateSetItem(s.id, originalIndex, 'spec', e.target.value)} className="w-full p-1 border rounded text-xs" />
+                                                                    <input type="text" value={item.qty} onChange={(e) => updateSetItem(s.id, originalIndex, 'qty', e.target.value)} className="w-full p-1 border rounded text-xs" />
+                                                                    <button onClick={() => deleteSetItem(s.id, originalIndex)} className="text-red-400 hover:text-red-600 flex justify-center p-2"><Trash2 size={14}/></button>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </React.Fragment>
+                                        );
                                     })}
+
+                                    {/* Fallback for uncategorized items */}
+                                    {s.items.filter(i => !Object.keys(BHMA_CATEGORIES).some(k => BHMA_CATEGORIES[k].includes(i.category))).map((item, idx) => (
+                                        <div key={'other-'+idx} className="grid grid-cols-[30px_60px_60px_140px_140px_100px_1fr_60px_40px] border-b border-gray-100 p-2 items-center hover:bg-gray-50 relative">
+                                            <div className="flex justify-center text-gray-400"><HardwareIcon category={item.category} /></div>
+                                            <input type="text" value={item.ref} className="w-full p-1 border rounded text-xs" disabled />
+                                            <div className="text-xs text-gray-400"></div>
+                                            <div className="text-sm text-gray-600">{item.type}</div>
+                                            <div className="text-sm text-gray-600">{item.style}</div>
+                                            <div className="text-sm text-gray-600">{item.finish}</div>
+                                            <div className="text-sm text-gray-500">{item.spec}</div>
+                                            <div className="text-sm text-gray-900">{item.qty}</div>
+                                        </div>
+                                    ))}
                                 </div>
                                 </div>
                                 
@@ -1977,10 +1961,10 @@ const App = () => {
               <div className="space-y-4">
                 {Object.entries(PRODUCT_CATALOG).map(([category, data]) => (
                   <div key={category}>
-                    <h4 className="text-xs font-bold text-gray-400 uppercase mb-2 flex justify-between">
-                        {category} 
-                        <span className="text-gray-300 font-normal">{data.csi}</span>
-                    </h4>
+                    <div className="flex justify-between items-center mb-2">
+                         <h4 className="text-xs font-bold text-gray-500 uppercase">{getBHMACategory(category)} - {category}</h4>
+                         <span className="text-[10px] text-gray-300 font-mono">{data.csi}</span>
+                    </div>
                     <div className="grid grid-cols-1 gap-2">
                       {data.types.map((type) => (
                         <button key={type.name} onClick={() => addNewItem(category, type.name)} className="text-left px-4 py-3 border border-gray-100 rounded hover:border-indigo-600 hover:bg-indigo-50 transition-colors group w-full">
