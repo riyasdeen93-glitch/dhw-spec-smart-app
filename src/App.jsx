@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  ShieldCheck, LayoutGrid, PlusCircle, FolderOpen, Trash2, 
+  LayoutGrid, PlusCircle, FolderOpen, Trash2, 
   Globe, Building, Save, X, Copy, Pencil, DoorClosed, 
   DoorOpen, AlertCircle, ArrowRight, ArrowLeft, FileSpreadsheet, 
   Brain, Check, AlertTriangle, TreeDeciduous, RectangleHorizontal, 
@@ -75,8 +75,13 @@ const POSSIBLE_DOOR_SET_COMBINATIONS =
 const HERO_STATS = [
   { label: "Door Set Profiles", value: POSSIBLE_DOOR_SET_COMBINATIONS.toLocaleString() },
   { label: "Modeled Use Cases", value: UNIQUE_DOOR_USES.length.toString() },
-  { label: "Export Formats", value: "BIM • PDF • XLSX" }
+  { label: "Export Formats", value: "BIM • PDF • XLSX" },
+  { label: "Door Materials", value: DOOR_MATERIALS.length.toString() },
+  { label: "Handing Options", value: HANDING_OPTIONS.length.toString() },
+  { label: "Facility Programs", value: Object.keys(FACILITY_DATA).length.toString() }
 ];
+const REVIEW_NOTICE =
+  "Notice: All auto-generated door hardware content must be reviewed and approved by a qualified subject-matter expert before it is shared or issued. Proceed only if you acknowledge this requirement.";
 
 // BHMA Categorization Helper
 const BHMA_CATEGORIES = {
@@ -1238,15 +1243,15 @@ const LandingPage = ({ onStart, hasProjects }) => {
       <div className="absolute bottom-0 right-0 w-[450px] h-[450px] bg-sky-500/20 blur-[180px]" />
     </div>
     <nav className="relative z-20 px-6 md:px-10 lg:px-12 py-5 flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <div className="bg-white/10 rounded-full p-2 backdrop-blur">
-          <ShieldCheck className="text-sky-300 w-6 h-6" />
-        </div>
-        <div>
-          <div className="text-lg md:text-2xl font-black tracking-tight">SpecSmart</div>
-          <div className="text-[11px] uppercase tracking-[0.35em] text-white/50">Door Hardware Intelligence</div>
-        </div>
-      </div>
+        <button onClick={() => setView('landing')} className="flex items-center gap-3 focus:outline-none">
+          <div className="bg-white/10 rounded-full p-2 backdrop-blur">
+            <DoorClosed className="text-sky-300 w-6 h-6" />
+          </div>
+          <div className="text-left">
+            <div className="text-lg md:text-2xl font-black tracking-tight">InstaSpec</div>
+            <div className="text-[11px] uppercase tracking-[0.35em] text-white/50">Door Hardware Intelligence</div>
+          </div>
+        </button>
       <div className="flex items-center gap-3">
         <button
           onClick={() => alert('Product tour coming soon.')}
@@ -1265,7 +1270,7 @@ const LandingPage = ({ onStart, hasProjects }) => {
 
     <main className="relative z-10 flex-1 w-full flex flex-col">
       <div className="w-full max-w-6xl mx-auto px-6 md:px-12 py-10 md:py-16 space-y-12">
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_520px] gap-12 items-start">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,460px)] gap-12 items-start">
           <div className="space-y-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 text-xs uppercase tracking-widest text-white/70">
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> For Architects • Consultants • Specifiers
@@ -1275,7 +1280,7 @@ const LandingPage = ({ onStart, hasProjects }) => {
               Specify door hardware with confidence in <span className="text-sky-300">minutes</span>, not days.
             </h1>
             <p className="mt-4 text-lg md:text-xl text-white/70">
-              SpecSmart unifies code compliance, hardware libraries, and visual coordination into a single premium workspace.
+              InstaSpec unifies code compliance, hardware libraries, and visual coordination into a single premium workspace.
               Build ANSI/EN ready schedules, visualize door sets, and export polished specs instantly.
             </p>
           </div>
@@ -1311,17 +1316,28 @@ const LandingPage = ({ onStart, hasProjects }) => {
               </li>
             ))}
           </ul>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {HERO_STATS.map((stat) => (
-              <div key={stat.label} className="bg-white/5 rounded-2xl p-4 border border-white/5">
-                <div className="text-xl font-black">{stat.value}</div>
-                <div className="text-xs uppercase tracking-wide text-white/60">{stat.label}</div>
+              <div
+                key={stat.label}
+                className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-5 border border-white/10 flex flex-col gap-3 shadow-lg shadow-black/40"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="text-xs uppercase tracking-[0.35em] text-white/50">{stat.label}</div>
+                  <span className="text-[11px] uppercase tracking-[0.3em] text-white/60">verified</span>
+                </div>
+                <div className="text-3xl font-black text-white">
+                  {stat.value}
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-sky-500 to-indigo-500 w-full animate-pulse-slow"></div>
+                </div>
               </div>
             ))}
           </div>
           </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,360px)_minmax(0,1fr)] bg-white/5 border border-white/10 rounded-[30px] p-6 gap-8 shadow-2xl shadow-black/50">
+        <div className="w-full bg-white/5 border border-white/10 rounded-[30px] p-6 shadow-2xl shadow-black/50 space-y-6">
             <div className="space-y-4">
               <div className="text-xs uppercase tracking-[0.4em] text-white/40">Instant Insights</div>
               <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-400/20 to-emerald-600/10 border border-white/10 shadow-lg">
@@ -1341,29 +1357,22 @@ const LandingPage = ({ onStart, hasProjects }) => {
             </div>
             <div className="space-y-4">
               <div className="text-xs uppercase tracking-[0.4em] text-white/40">Workflow Snapshot</div>
-              <div className="flex flex-col lg:flex-row lg:items-stretch gap-4">
+              <div className="flex flex-col gap-4">
                 {[
-                  { title: "1. Project Setup", desc: "Define facility, fire-rating, and jurisdiction rules—the rule engine tunes itself instantly." },
-                  { title: "2. Door Schedule", desc: "Capture dimensions, STC, ADA, and access logic. Additional locations auto-adjust quantity." },
-                  { title: "3. Hardware Sets", desc: "Door Hardware Layout Preview shows hinges, closers, maglocks, and panic trim before specification." },
-                  { title: "4. Validation & Review", desc: "Compliance Pulse verifies life-safety, then exports BIM, PDF, and Excel packages in one click." }
-                ].map((card, idx, arr) => (
-                  <React.Fragment key={card.title}>
-                    <div className="bg-slate-950/60 border border-white/10 rounded-2xl p-4 text-white/80 flex-1 shadow relative">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-7 h-7 rounded-full bg-sky-400 text-slate-950 font-bold flex items-center justify-center shadow-lg shadow-sky-500/40">
-                          {idx + 1}
-                        </div>
-                        <div className="text-white font-semibold">{card.title}</div>
-                      </div>
+                  { title: "Project Setup", desc: "Define facility, fire-rating, and jurisdiction rules—the rule engine tunes itself instantly." },
+                  { title: "Door Schedule", desc: "Capture dimensions, STC, ADA, and access logic. Additional locations auto-adjust quantity." },
+                  { title: "Hardware Sets", desc: "Door Hardware Layout Preview shows hinges, closers, maglocks, and panic trim before specification." },
+                  { title: "Validation & Review", desc: "Compliance Pulse verifies life-safety, then exports BIM, PDF, and Excel packages in one click." }
+                ].map((card, idx) => (
+                  <div key={card.title} className="flex items-start gap-3">
+                    <div className="w-7 h-7 rounded-full bg-sky-400 text-slate-950 font-bold flex-shrink-0 flex items-center justify-center shadow-lg shadow-sky-500/40">
+                      {idx + 1}
+                    </div>
+                    <div className="bg-slate-950/60 border border-white/10 rounded-2xl p-4 text-white/80 flex-1 shadow">
+                      <div className="text-white font-semibold mb-1">{card.title}</div>
                       <p className="text-sm text-white/65">{card.desc}</p>
                     </div>
-                    {idx < arr.length - 1 && (
-                      <div className="hidden lg:flex items-center text-sky-300">
-                        <ArrowRight className="w-8 h-8" />
-                      </div>
-                    )}
-                  </React.Fragment>
+                  </div>
                 ))}
               </div>
             </div>
@@ -1380,8 +1389,7 @@ const LandingPage = ({ onStart, hasProjects }) => {
         className="text-white font-semibold underline underline-offset-2 decoration-white/40 hover:text-sky-300"
       >
         Techarix
-      </a>{" "}
-      — Guided by DHW experts
+      </a>
     </footer>
   </div>
 );
@@ -1755,6 +1763,10 @@ const App = () => {
 
   const exportData = async () => {
     setExportStatus('Generating...');
+    if (!window.confirm(REVIEW_NOTICE)) {
+      setExportStatus('');
+      return;
+    }
     try {
       const XLSX = await import("https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs");
       const p = getProj();
@@ -1826,6 +1838,7 @@ const App = () => {
   };
 
   const exportBIMData = () => {
+    if (!window.confirm(REVIEW_NOTICE)) return;
     const p = getProj();
     const bimRows = p.doors.map(d => ({
         "Mark": d.mark,
@@ -1844,6 +1857,12 @@ const App = () => {
     ].join('\n');
 
     downloadCSV(csvContent, `${p.name.replace(/\s+/g, '_')}_BIM_SharedParams.csv`);
+  };
+
+  const handlePrint = () => {
+    if (window.confirm(REVIEW_NOTICE)) {
+      window.print();
+    }
   };
 
   // Hardware Logic
@@ -1945,11 +1964,12 @@ const App = () => {
       };
     });
 
-    const updatedProjects = projects.map(p => 
+    const updatedProjects = projects.map(p =>
       p.id === currentId ? { ...p, sets: newSets } : p
     );
     setProjects(updatedProjects);
     setStep(2);
+    alert(REVIEW_NOTICE);
   };
 
   const updateSetItem = (setId, idx, field, val) => {
@@ -2217,7 +2237,7 @@ const App = () => {
               })}
 
               <div className="fixed top-4 right-4 print:hidden">
-                  <button onClick={() => window.print()} className="px-4 py-2 bg-black text-white rounded shadow-lg flex items-center gap-2"><Printer size={16}/> Print PDF</button>
+                  <button onClick={handlePrint} className="px-4 py-2 bg-black text-white rounded shadow-lg flex items-center gap-2"><Printer size={16}/> Print PDF</button>
                   <button onClick={() => setPrintMode(false)} className="ml-2 px-4 py-2 bg-gray-200 text-black rounded shadow-lg">Close</button>
               </div>
           </div>
@@ -2228,10 +2248,10 @@ const App = () => {
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900 font-sans">
       {/* Global Header */}
       <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-40">
-        <div className="flex items-center gap-2 font-bold text-lg md:text-xl text-gray-900">
-          <ShieldCheck className="text-indigo-600" />
-          <span>SpecSmart <span className="text-xs text-gray-400 font-normal ml-2">v1.1</span></span>
-        </div>
+        <button onClick={() => setView('landing')} className="flex items-center gap-2 font-bold text-lg md:text-xl text-gray-900 focus:outline-none">
+          <DoorClosed className="text-indigo-600" />
+          <span>InstaSpec <span className="text-xs text-gray-400 font-normal ml-2">v1.1</span></span>
+        </button>
         <div className="flex gap-4 items-center">
             {view === 'wizard' && <span className="text-xs text-gray-400">{exportStatus || saveStatus}</span>}
             <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-2 py-1">
@@ -2281,7 +2301,7 @@ const App = () => {
       {view === 'wizard' && (
         <div className="bg-slate-900/95 text-white px-4 md:px-8 py-4 flex flex-col md:flex-row gap-3 justify-center items-stretch shadow-inner">
           {HERO_STATS.map((stat) => (
-            <div key={stat.label} className="flex-1 min-w-[140px] bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center">
+            <div key={stat.label} className="flex-1 min-w-[160px] bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center">
               <div className="text-lg font-extrabold tracking-tight">{stat.value}</div>
               <div className="text-[11px] uppercase tracking-[0.3em] text-white/60">{stat.label}</div>
             </div>
