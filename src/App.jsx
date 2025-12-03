@@ -10,7 +10,6 @@ import {
   BookOpen, UploadCloud, Wand2
 } from 'lucide-react';
 
-
 // --- UTILS ---
 
 const generateId = () => {
