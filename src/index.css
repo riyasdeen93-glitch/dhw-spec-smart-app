@@ -48,3 +48,31 @@ body {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* --- Beta profile menu animation --- */
+.fade-in-menu {
+  animation: fadeInMenu 0.18s ease-out;
+  transform-origin: top right;
+}
+
+@keyframes fadeInMenu {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

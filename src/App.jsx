@@ -1,4 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useAuth } from "./auth/AuthContext";
+import BetaAuthModal from "./components/BetaAuthModal";
+import BetaAdminPanel from "./components/BetaAdminPanel";
+import BetaFeedbackModal from "./components/BetaFeedbackModal";
+import { isAdminEmail, getDownloadCount, incrementDownload } from "./auth/betaAccess";
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   LayoutGrid, PlusCircle, FolderOpen, Trash2, 
   Globe, Building, Save, X, Copy, Pencil, DoorClosed, 
@@ -1552,7 +1557,26 @@ const DoorPreview = ({ door, hardwareSet }) => {
 
 // --- MAIN APP COMPONENT ---
 
-const LandingPage = ({ onStart, hasProjects }) => {
+const LandingPage = ({
+  onStart,
+  hasProjects,
+  isAdmin,
+  onOpenAdmin,
+  isAdminOpen,
+  onCloseAdmin
+}) => {
+  const { user, logout } = useAuth();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  const handleStartClick = () => {
+    if (user) {
+      // already logged in → go to dashboard
+      onStart();
+    } else {
+      // not logged in → open beta login popup
+      setIsAuthModalOpen(true);
+    }
+  };
 
   return (
   <div className="relative w-full min-h-screen bg-slate-950 text-white overflow-hidden flex flex-col">
@@ -1571,6 +1595,14 @@ const LandingPage = ({ onStart, hasProjects }) => {
           </div>
         </button>
       <div className="flex items-center gap-3">
+        {user && isAdmin && (
+          <button
+            onClick={onOpenAdmin}
+            className="px-4 py-2 rounded-full border border-indigo-300 text-sm font-semibold text-indigo-50 hover:bg-indigo-500/20 transition"
+          >
+            Beta Admin
+          </button>
+        )}
         <button
           onClick={() => alert('Product tour coming soon.')}
           className="hidden sm:inline-flex px-4 py-2 rounded-full border border-white/10 text-sm font-semibold text-white/80 hover:bg-white/5 transition"
@@ -1578,7 +1610,7 @@ const LandingPage = ({ onStart, hasProjects }) => {
           Product Tour
         </button>
         <button
-          onClick={onStart}
+          onClick={handleStartClick}
           className="px-4 md:px-6 py-2 rounded-full bg-indigo-500 hover:bg-indigo-400 text-sm md:text-base font-semibold shadow-lg shadow-indigo-500/40 transition"
         >
           {hasProjects ? 'Open Dashboard' : 'Start Configuring'}
@@ -1604,7 +1636,7 @@ const LandingPage = ({ onStart, hasProjects }) => {
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
               <button
-                onClick={onStart}
+                onClick={handleStartClick}
                 className="px-8 py-4 bg-sky-400 text-slate-950 font-bold rounded-xl shadow-xl shadow-sky-500/30 flex items-center justify-center gap-2 text-lg hover:bg-sky-300 transition"
               >
                 Start Configuring <ArrowRight className="w-5 h-5" />
@@ -1748,11 +1780,30 @@ const LandingPage = ({ onStart, hasProjects }) => {
         Techarix
       </a>
     </footer>
+          <BetaAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
+      {isAdmin && (
+        <BetaAdminPanel
+          isOpen={isAdminOpen}
+          onClose={onCloseAdmin}
+        />
+      )}
+
   </div>
 );
 };
 
 const App = () => {
+  const { user, logout } = useAuth();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const isAdmin = user ? isAdminEmail(user.email) : false;
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [remainingLabel, setRemainingLabel] = useState("");
+
   // State
   const [view, setView] = useState('landing');
   const [step, setStep] = useState(0);
@@ -1764,6 +1815,9 @@ const App = () => {
   const [printMode, setPrintMode] = useState(false);
   const [exportStatus, setExportStatus] = useState('');
   const [lockResetSignals, setLockResetSignals] = useState({});
+  const [downloadUsageTick, setDownloadUsageTick] = useState(0);
+  const [downloadWarning, setDownloadWarning] = useState("");
+  const DOWNLOAD_LIMIT = 10;
   
   // Door Modal State (Hierarchical Location)
   const [doorForm, setDoorForm] = useState({
@@ -1792,6 +1846,11 @@ const App = () => {
   const adaWarningMessage = showAdaWarning
     ? `Door width ${numericWidth || 0}mm provides ${adaClearOpening}mm clear opening; ADA requires ${ADA_MIN_CLEAR_OPENING_MM}mm (32").`
     : '';
+  const isBetaUser = Boolean(user && (user.plan === "beta_tester" || user.plan === "beta_admin"));
+  const downloadCount = useMemo(() => {
+    if (!user || user.plan === "beta_admin") return null;
+    return getDownloadCount(user.email);
+  }, [user, downloadUsageTick]);
 
   // Load Data on Mount
   useEffect(() => {
@@ -1806,6 +1865,16 @@ const App = () => {
       console.error("Failed to load projects", e);
     }
   }, []);
+
+    // Redirect to landing when auth is gone (logout / expiry)
+    useEffect(() => {
+    // If the user logs out or expires while not on the landing page,
+    // send them back to the landing view.
+    if (!user && view !== "landing") {
+      setView("landing");
+    }
+  }, [user, view]);
+
 
   // Save Data on Change
   useEffect(() => {
@@ -1825,6 +1894,42 @@ const App = () => {
       }
     }
   }, [doorForm.fire, doorForm.use, doorForm.width, doorForm.height, doorForm.thickness, doorForm.location, doorForm.material]);
+
+ useEffect(() => {
+  if (!user || !user.expiresAt) {
+    setRemainingLabel("");
+    return;
+  }
+
+  const update = () => {
+    const msLeft = user.expiresAt - Date.now();
+    if (msLeft <= 0) {
+      setRemainingLabel("Expired");
+      return;
+    }
+
+    const totalMinutes = Math.round(msLeft / 60000);
+    const hours = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+
+    if (hours > 0) {
+      setRemainingLabel(`Expires in ${hours}h ${mins}m`);
+    } else {
+      setRemainingLabel(`Expires in ${mins}m`);
+    }
+  };
+
+  update();                         // set immediately
+  const id = setInterval(update, 60000); // update every minute
+
+  return () => clearInterval(id);
+}, [user]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      setDownloadWarning("");
+    }
+  }, [isAdmin]);
 
   const getProj = () => projects.find(p => p.id === currentId);
 
@@ -2222,6 +2327,28 @@ const App = () => {
     }
   };
 
+  const handleDownloadWithLimit = async (action) => {
+    if (!user) {
+      alert("Please log in to download documents.");
+      return;
+    }
+    if (user.plan === "beta_admin") {
+      await Promise.resolve(action());
+      return;
+    }
+    const currentCount = getDownloadCount(user.email);
+    if (currentCount >= DOWNLOAD_LIMIT) {
+      setDownloadWarning(
+        "You’ve reached the 10-download limit for this beta. Please contact your InstaSpec admin to increase your download allowance."
+      );
+      return;
+    }
+    incrementDownload(user.email);
+    setDownloadUsageTick((prev) => prev + 1);
+    setDownloadWarning("");
+    await Promise.resolve(action());
+  };
+
   // Hardware Logic
   const generateHardwareSets = () => {
     const proj = getProj();
@@ -2515,7 +2642,14 @@ const App = () => {
   // --- VIEWS ---
 
   if (view === 'landing') {
-    return <LandingPage onStart={() => setView(projects.length > 0 ? 'dashboard' : 'dashboard')} hasProjects={projects.length > 0} />;
+     return (
+    <LandingPage
+      onStart={() => setView(projects.length > 0 ? 'dashboard' : 'wizard')}
+      hasProjects={projects.length > 0}
+      isAdmin={isAdmin}
+      onOpenAdmin={() => setIsAdminOpen(true)}
+      isAdminOpen={isAdminOpen}
+      onCloseAdmin={() => setIsAdminOpen(false)} /> );
   }
 
   // --- PRINT MODE ---
@@ -2598,7 +2732,12 @@ const App = () => {
               })}
 
               <div className="fixed top-4 right-4 print:hidden">
-                  <button onClick={handlePrint} className="px-4 py-2 bg-black text-white rounded shadow-lg flex items-center gap-2"><Printer size={16}/> Print PDF</button>
+                  <button
+                    onClick={() => handleDownloadWithLimit(handlePrint)}
+                    className="px-4 py-2 bg-black text-white rounded shadow-lg flex items-center gap-2"
+                  >
+                    <Printer size={16}/> Print PDF
+                  </button>
                   <button onClick={() => setPrintMode(false)} className="ml-2 px-4 py-2 bg-gray-200 text-black rounded shadow-lg">Close</button>
               </div>
           </div>
@@ -2608,34 +2747,125 @@ const App = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900 font-sans">
       {/* Global Header */}
-      <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-40">
-        <button onClick={() => setView('landing')} className="flex items-center gap-2 font-bold text-lg md:text-xl text-gray-900 focus:outline-none">
-          <DoorClosed className="text-indigo-600" />
-          <span>InstaSpec <span className="text-xs text-gray-400 font-normal ml-2">v1.1</span></span>
-        </button>
-        <div className="flex gap-4 items-center">
-            {view === 'wizard' && <span className="text-xs text-gray-400">{exportStatus || saveStatus}</span>}
-            <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-2 py-1">
-                <UserCircle size={16} className="text-gray-500" />
-                <select 
-                    value={userRole} 
-                    onChange={(e) => setUserRole(e.target.value)}
-                    className="bg-transparent border-none text-sm font-medium focus:ring-0 cursor-pointer"
-                >
-                    <option value="Architect">Architect View</option>
-                    <option value="Contractor" disabled>Contractor View (Coming Soon)</option>
-                </select>
-            </div>
+      <header className="h-16 bg-white border-b border-gray-200 flex items-center px-4 md:px-8 sticky top-0 z-40">
 
-            {view === 'dashboard' && projects.length > 0 && (
-                <button onClick={resetApp} className="text-gray-400 hover:text-red-500 text-sm flex items-center gap-1" title="Clear All Data">
-                    <RotateCcw size={16} /> <span className="hidden md:inline">Reset</span>
-                </button>
-            )}
-            <button onClick={() => setView('dashboard')} className="text-gray-500 hover:text-gray-900 flex items-center gap-2 text-sm md:text-base">
-                <LayoutGrid size={18} /> <span className="hidden md:inline">Dashboard</span>
+  {/* LEFT: Logo + home */}
+  <button
+    onClick={() => setView('landing')}
+    className="flex items-center gap-2 font-bold text-lg md:text-xl text-gray-900 focus:outline-none"
+  >
+    <DoorClosed className="text-indigo-600" />
+    <span>InstaSpec</span>
+    <span className="text-xs text-gray-400 font-normal ml-1">v1.1 Beta</span>
+  </button>
+
+  {/* CENTER: Role + status (only when logged in) */}
+  {user && (
+    <div className="flex-1 flex items-center justify-center gap-4">
+      {view === 'wizard' && (
+        <span className="hidden md:inline text-xs text-gray-400">
+          {exportStatus || saveStatus}
+        </span>
+      )}
+
+      <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-2 py-1">
+        <UserCircle size={16} className="text-gray-500" />
+        <select
+          value={userRole}
+          onChange={(e) => setUserRole(e.target.value)}
+          className="bg-transparent border-none text-sm font-medium focus:ring-0 cursor-pointer"
+        >
+          <option value="Architect">Architect View</option>
+          <option value="Contractor" disabled>
+            Contractor View (Coming Soon)
+          </option>
+        </select>
+      </div>
+    </div>
+  )}
+
+  {/* RIGHT: Controls + user pill (only when logged in) */}
+  {user && (
+    <div className="flex items-center gap-3 ml-4">
+      {isBetaUser && (
+        <button
+          onClick={() => setIsFeedbackOpen(true)}
+          className="text-xs md:text-sm px-3 py-1.5 rounded-full border border-amber-200 text-amber-700 hover:bg-amber-50"
+        >
+          Send Feedback
+        </button>
+      )}
+      {isAdmin && (
+        <button
+          onClick={() => setIsAdminOpen(true)}
+          className="text-xs md:text-sm px-3 py-1.5 rounded-full border border-indigo-200
+                     text-indigo-600 hover:bg-indigo-50"
+        >
+          Beta Admin
+        </button>
+      )}
+      {/* Reset (dashboard only) */}
+      {view === 'dashboard' && projects.length > 0 && (
+        <button
+          onClick={resetApp}
+          className="text-gray-400 hover:text-red-500 text-sm flex items-center gap-1"
+          title="Clear All Data"
+        >
+          <RotateCcw size={16} />
+          <span className="hidden md:inline">Reset</span>
+        </button>
+      )}
+
+      {/* Dashboard button */}
+      <button
+        onClick={() => setView('dashboard')}
+        className="text-gray-500 hover:text-gray-900 flex items-center gap-2 text-sm md:text-base"
+      >
+        <LayoutGrid size={18} />
+        <span className="hidden md:inline">Dashboard</span>
+      </button>
+
+      {/* User pill + dropdown */}
+      <div className="relative">
+        <button
+          onClick={() => setShowUserMenu((prev) => !prev)}
+          className="px-3 py-1.5 rounded-full bg-indigo-600 text-white text-xs md:text-sm
+                     flex items-center gap-2 shadow-sm hover:bg-indigo-700 transition"
+        >
+          <span className="max-w-[140px] truncate">{user.email}</span>
+
+          {remainingLabel && (
+            <span
+              className="text-[10px] md:text-[11px] px-2 py-0.5 rounded-full
+                         bg-indigo-500/80 border border-white/20 whitespace-nowrap"
+            >
+              {remainingLabel}
+            </span>
+          )}
+
+          <ChevronDown size={12} className="opacity-80" />
+        </button>
+
+        {showUserMenu && (
+          <div
+            className="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-lg
+                       ring-1 ring-black/5 py-1 text-sm animate-[fadeInUp_0.18s_ease-out] origin-top-right"
+          >
+            <button
+              onClick={() => {
+                logout();
+                setShowUserMenu(false);
+              }}
+              className="w-full text-left px-3 py-2 text-gray-700
+                         hover:bg-indigo-50 hover:text-indigo-700"
+            >
+              Logout
             </button>
-        </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )}
       </header>
 
       {/* Project Context Bar */}
@@ -3241,17 +3471,36 @@ const App = () => {
                   <h2 className="text-2xl font-bold">Specification Review</h2>
                   <div className="flex gap-3">
                       {userRole !== 'Owner' && (
-                        <button onClick={exportBIMData} className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 font-bold flex items-center justify-center gap-2 shadow-sm text-sm">
+                        <button
+                          onClick={() => handleDownloadWithLimit(exportBIMData)}
+                          className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 font-bold flex items-center justify-center gap-2 shadow-sm text-sm"
+                        >
                             <Box size={18} /> Export BIM Data
                         </button>
                       )}
-                      <button onClick={() => setPrintMode(true)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-bold flex items-center justify-center gap-2 shadow-sm text-sm">
+                      <button
+                        onClick={() => setPrintMode(true)}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-bold flex items-center justify-center gap-2 shadow-sm text-sm"
+                      >
                         <FileText size={18} /> Print Spec Sheet
                       </button>
-                      <button onClick={exportData} className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold flex items-center justify-center gap-2 shadow-sm">
+                      <button
+                        onClick={() => handleDownloadWithLimit(exportData)}
+                        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-bold flex items-center justify-center gap-2 shadow-sm"
+                      >
                         <FileSpreadsheet size={18} /> Export Schedule
                       </button>
                   </div>
+                  {!isAdmin && user && (
+                    <div className="text-xs text-gray-500 mt-2">
+                      Downloads used: {downloadCount ?? 0} / {DOWNLOAD_LIMIT}
+                    </div>
+                  )}
+                  {downloadWarning && (
+                    <div className="mt-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+                      {downloadWarning}
+                    </div>
+                  )}
                 </div>
 
                 {/* Validation Report */}
@@ -3722,6 +3971,16 @@ const App = () => {
           </div>
         </div>
       )}
+      {isAdmin && (
+        <BetaAdminPanel
+          isOpen={isAdminOpen}
+          onClose={() => setIsAdminOpen(false)}
+        />
+      )}
+      <BetaFeedbackModal
+        isOpen={isFeedbackOpen}
+        onClose={() => setIsFeedbackOpen(false)}
+      />
     </div>
   );
 };
