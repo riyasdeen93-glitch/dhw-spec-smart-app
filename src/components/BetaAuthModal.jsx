@@ -320,7 +320,7 @@ const BetaAuthModal = ({ isOpen, onClose, onSuccess }) => {
                     isSubmitting ? "opacity-60 cursor-not-allowed" : ""
                   }`}
                 >
-                  {isSubmitting ? "Checking..." : "Login Beta"}
+                  {isSubmitting ? "Checking..." : "Beta Login"}
                 </button>
               </div>
             </form>

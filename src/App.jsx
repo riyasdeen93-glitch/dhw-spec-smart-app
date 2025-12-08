@@ -2128,13 +2128,18 @@ const LandingPage = ({
       <div className="absolute bottom-0 right-0 w-[450px] h-[450px] bg-sky-500/20 blur-[180px]" />
     </div>
     <nav className="relative z-20 px-6 md:px-10 lg:px-12 py-5 flex items-center justify-between">
-        <button onClick={() => setView('landing')} className="flex items-center gap-3 focus:outline-none">
-          <div className="bg-white/10 rounded-full p-2 backdrop-blur">
-            <DoorClosed className="text-sky-300 w-6 h-6" />
+        <button
+          onClick={() => setView('landing')}
+          className="flex items-center gap-3 focus:outline-none w-full sm:w-auto text-left"
+        >
+          <div className="bg-white/10 rounded-2xl p-2.5 backdrop-blur flex items-center justify-center">
+            <DoorClosed className="text-sky-300 w-7 h-7" />
           </div>
-          <div className="text-left">
-            <div className="text-lg md:text-2xl font-black tracking-tight">InstaSpec</div>
-            <div className="text-[11px] uppercase tracking-[0.35em] text-white/50">Door Hardware Intelligence</div>
+          <div className="flex flex-col leading-tight">
+            <span className="text-xl md:text-2xl font-black tracking-tight">InstaSpec</span>
+            <span className="text-[11px] md:text-sm font-semibold text-white/70 whitespace-nowrap">
+              Design Faster. Build Smarter.
+            </span>
           </div>
         </button>
       <div className="flex items-center gap-3">
@@ -2156,7 +2161,7 @@ const LandingPage = ({
           onClick={handleStartClick}
           className="px-4 md:px-6 py-2 rounded-full bg-indigo-500 hover:bg-indigo-400 text-sm md:text-base font-semibold shadow-lg shadow-indigo-500/40 transition"
         >
-          {hasProjects ? 'Open Dashboard' : 'Start Configuring'}
+          {user ? (hasProjects ? 'Open Dashboard' : 'Start Configuring') : 'Beta Login'}
         </button>
       </div>
     </nav>
@@ -2164,10 +2169,15 @@ const LandingPage = ({
     <main className="relative z-10 flex-1 w-full flex flex-col">
       <div className="w-full max-w-6xl mx-auto px-6 md:px-12 py-10 md:py-16">
         <div className="grid gap-12 lg:gap-14 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,420px)] items-start">
-          <section className="order-1 lg:col-start-1 lg:row-start-1 space-y-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 text-xs uppercase tracking-[0.4em] text-white/70">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> For Architects / Consultants / Specifiers
-            </div>
+            <section className="order-1 lg:col-start-1 lg:row-start-1 space-y-8">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 text-[10px] sm:text-xs uppercase tracking-[0.35em] text-white/70 whitespace-nowrap">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="tracking-[0.25em]">FOR ARCHITECTS</span>
+                <span className="text-white/40">/</span>
+                <span className="tracking-[0.25em]">CONSULTANTS</span>
+                <span className="text-white/40">/</span>
+                <span className="tracking-[0.25em]">SPECIFIERS</span>
+              </div>
             <div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-tight text-white">
                 Specify door hardware with confidence in <span className="text-sky-300">minutes</span>, not days.
@@ -2177,13 +2187,13 @@ const LandingPage = ({
                 Build ANSI/EN ready schedules, visualize door sets, and export polished specs instantly.
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button
-                onClick={handleStartClick}
-                className="px-8 py-4 bg-sky-400 text-slate-950 font-bold rounded-xl shadow-xl shadow-sky-500/30 flex items-center justify-center gap-2 text-lg hover:bg-sky-300 transition"
-              >
-                Start Configuring <ArrowRight className="w-5 h-5" />
-              </button>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={handleStartClick}
+                  className="px-8 py-4 bg-sky-400 text-slate-950 font-bold rounded-xl shadow-xl shadow-sky-500/30 flex items-center justify-center gap-2 text-lg hover:bg-sky-300 transition"
+                >
+                  Start Configuring <ArrowRight className="w-5 h-5" />
+                </button>
               <button
                 onClick={() => showNotice?.("Coming Soon", "Demo replay coming soon.")}
                 className="px-8 py-4 border border-white/20 rounded-xl font-semibold text-lg text-white/80 hover:bg-white/10 transition flex items-center justify-center gap-2"
