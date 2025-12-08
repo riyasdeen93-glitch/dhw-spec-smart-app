@@ -22,6 +22,27 @@ const hasWindow = typeof window !== "undefined";
 const DOWNLOAD_USAGE_COLLECTION = "betaUsage";
 const DEFAULT_DOWNLOAD_LIMIT = 10;
 
+const readJSON = (key, fallback) => {
+  if (!hasWindow) return fallback;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw);
+  } catch (err) {
+    console.warn(`Failed to parse localStorage key ${key}`, err);
+    return fallback;
+  }
+};
+
+const writeJSON = (key, value) => {
+  if (!hasWindow) return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch (err) {
+    console.warn(`Failed to persist localStorage key ${key}`, err);
+  }
+};
+
 export const ADMIN_EMAILS = [
   "admin@techarix.com"
 ];
@@ -63,27 +84,6 @@ const upsertLocalBetaUser = (payload) => {
 const removeLocalBetaUser = (email) => {
   localBetaUsers = localBetaUsers.filter((user) => user.email !== email);
   persistLocalBetaUsers();
-};
-
-const readJSON = (key, fallback) => {
-  if (!hasWindow) return fallback;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw);
-  } catch (err) {
-    console.warn(`Failed to parse localStorage key ${key}`, err);
-    return fallback;
-  }
-};
-
-const writeJSON = (key, value) => {
-  if (!hasWindow) return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  } catch (err) {
-    console.warn(`Failed to persist localStorage key ${key}`, err);
-  }
 };
 
 export async function getBetaUser(rawEmail) {
