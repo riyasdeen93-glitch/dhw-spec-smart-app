@@ -26,6 +26,8 @@ export const ADMIN_EMAILS = [
   "admin@techarix.com"
 ];
 
+const NO_EXPIRY_EMAILS = ["tester1@techarix.com"];
+
 export const MASTER_ADMIN_CODE =
   import.meta.env.VITE_MASTER_BETA_CODE || "INSTASPECMASTER@2025";
 
@@ -35,6 +37,33 @@ const randomChunk = () => Math.random().toString(36).substring(2, 6).toUpperCase
 export const generateNewBetaCode = () => `BETA-${randomChunk()}-${randomChunk()}`;
 
 const betaUserCache = new Map();
+
+const applyNoExpiryOverride = (user) => {
+  if (!user) return user;
+  if (NO_EXPIRY_EMAILS.includes(user.email)) {
+    return { ...user, expiresAt: null };
+  }
+  return user;
+};
+
+const BETA_USER_LOCAL_KEY = "instaspec:betaUsers";
+let localBetaUsers = readJSON(BETA_USER_LOCAL_KEY, []).map((user) => ({
+  ...user,
+  email: normalizeEmail(user.email)
+}));
+const persistLocalBetaUsers = () => writeJSON(BETA_USER_LOCAL_KEY, localBetaUsers);
+const getLocalBetaUser = (email) =>
+  localBetaUsers.find((user) => user.email === email) || null;
+const upsertLocalBetaUser = (payload) => {
+  const others = localBetaUsers.filter((user) => user.email !== payload.email);
+  localBetaUsers = [...others, payload];
+  persistLocalBetaUsers();
+  return payload;
+};
+const removeLocalBetaUser = (email) => {
+  localBetaUsers = localBetaUsers.filter((user) => user.email !== email);
+  persistLocalBetaUsers();
+};
 
 const readJSON = (key, fallback) => {
   if (!hasWindow) return fallback;
@@ -60,25 +89,49 @@ const writeJSON = (key, value) => {
 export async function getBetaUser(rawEmail) {
   const email = normalizeEmail(rawEmail);
   if (!email) return null;
-  const ref = doc(db, "betaUsers", email);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return null;
-  const data = { ...snap.data(), email };
-  betaUserCache.set(email, data);
-  return data;
+  try {
+    const ref = doc(db, "betaUsers", email);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      const local = getLocalBetaUser(email);
+      if (!local) return null;
+      const normalized = applyNoExpiryOverride(local);
+      betaUserCache.set(email, normalized);
+      return normalized;
+    }
+    const data = applyNoExpiryOverride({ ...snap.data(), email });
+    betaUserCache.set(email, data);
+    return data;
+  } catch (err) {
+    console.warn("Falling back to local beta user store", err);
+    const local = getLocalBetaUser(email);
+    if (!local) return null;
+    const normalized = applyNoExpiryOverride(local);
+    betaUserCache.set(email, normalized);
+    return normalized;
+  }
 }
 
 export async function listBetaUsers() {
-  const snap = await getDocs(collection(db, "betaUsers"));
-  const users = snap.docs.map((docSnap) => {
-    const data = docSnap.data();
-    const email = data.email || docSnap.id;
-    const normalized = normalizeEmail(email);
-    const payload = { ...data, email: normalized };
-    betaUserCache.set(normalized, payload);
-    return payload;
-  });
-  return users;
+  try {
+    const snap = await getDocs(collection(db, "betaUsers"));
+    const users = snap.docs.map((docSnap) => {
+      const data = docSnap.data();
+      const email = data.email || docSnap.id;
+      const normalized = normalizeEmail(email);
+      const payload = applyNoExpiryOverride({ ...data, email: normalized });
+      betaUserCache.set(normalized, payload);
+      return payload;
+    });
+    return users;
+  } catch (err) {
+    console.warn("Failed to load beta users from Firestore, using local store.", err);
+    localBetaUsers = (localBetaUsers || []).map((user) =>
+      applyNoExpiryOverride(user)
+    );
+    localBetaUsers.forEach((user) => betaUserCache.set(user.email, user));
+    return localBetaUsers;
+  }
 }
 
 export async function saveBetaUser({
@@ -96,7 +149,12 @@ export async function saveBetaUser({
   const existingSnap = await getDoc(ref);
   const existing = existingSnap.exists() ? existingSnap.data() : null;
   const createdAt = existing?.createdAt || now;
-  const expiry = typeof expiresAt === "number" ? expiresAt : now + hours * 60 * 60 * 1000;
+  const forceNoExpiry = NO_EXPIRY_EMAILS.includes(email);
+  const expiry = forceNoExpiry
+    ? null
+    : typeof expiresAt === "number"
+    ? expiresAt
+    : now + hours * 60 * 60 * 1000;
 
   const payload = {
     email,
@@ -108,16 +166,31 @@ export async function saveBetaUser({
     createdAt
   };
 
-  await setDoc(ref, payload, { merge: true });
-  betaUserCache.set(email, payload);
-  return payload;
+  try {
+    await setDoc(ref, payload, { merge: true });
+    const normalizedPayload = applyNoExpiryOverride(payload);
+    betaUserCache.set(email, normalizedPayload);
+    return normalizedPayload;
+  } catch (err) {
+    console.warn("Failed to save beta user to Firestore. Using local store.", err);
+    const normalizedPayload = applyNoExpiryOverride(payload);
+    upsertLocalBetaUser(normalizedPayload);
+    betaUserCache.set(email, normalizedPayload);
+    return normalizedPayload;
+  }
 }
 
 export async function deleteBetaUser(rawEmail) {
   const email = normalizeEmail(rawEmail);
   if (!email) return;
-  await deleteDoc(doc(db, "betaUsers", email));
-  betaUserCache.delete(email);
+  try {
+    await deleteDoc(doc(db, "betaUsers", email));
+    betaUserCache.delete(email);
+  } catch (err) {
+    console.warn("Failed to delete beta user from Firestore. Removing locally.", err);
+    removeLocalBetaUser(email);
+    betaUserCache.delete(email);
+  }
 }
 
 export async function validateBetaAccess(rawEmail, code) {
@@ -125,6 +198,19 @@ export async function validateBetaAccess(rawEmail, code) {
     return { status: "missing", user: null };
   }
   const email = normalizeEmail(rawEmail);
+  if (code === MASTER_ADMIN_CODE && ADMIN_EMAILS.includes(email)) {
+    const masterUser = {
+      email,
+      code: MASTER_ADMIN_CODE,
+      plan: "beta_admin",
+      isAdmin: true,
+      expiresAt: null,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+    betaUserCache.set(email, masterUser);
+    return { status: "success", user: masterUser };
+  }
   const user = await getBetaUser(email);
   if (!user) {
     return { status: "not_found", user: null };
