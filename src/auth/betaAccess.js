@@ -8,7 +8,11 @@ import {
   getDocs,
   query,
   where,
-  runTransaction
+  runTransaction,
+  addDoc,
+  orderBy,
+  limit,
+  increment
 } from "firebase/firestore";
 
 const STORAGE_KEYS = {
@@ -21,6 +25,8 @@ const STORAGE_KEYS = {
 const hasWindow = typeof window !== "undefined";
 const DOWNLOAD_USAGE_COLLECTION = "betaUsage";
 const DEFAULT_DOWNLOAD_LIMIT = 10;
+
+const BETA_LOGIN_LOG_COLLECTION = "betaLoginLogs";
 
 const readJSON = (key, fallback) => {
   if (!hasWindow) return fallback;
@@ -238,6 +244,19 @@ const RECENT_LOGIN_LIMIT = 20;
 const loginLogStore = readJSON(STORAGE_KEYS.loginLog, []);
 
 const persistLoginLog = () => writeJSON(STORAGE_KEYS.loginLog, loginLogStore);
+const getLoginStatsDocRef = () => doc(db, "betaMetadata", "loginStats");
+const appendLoginLogToServer = async (entry) => {
+  try {
+    await addDoc(collection(db, BETA_LOGIN_LOG_COLLECTION), entry);
+    await setDoc(
+      getLoginStatsDocRef(),
+      { totalLogins: increment(1) },
+      { merge: true }
+    );
+  } catch (err) {
+    console.warn("Failed to persist login log to Firestore", err);
+  }
+};
 
 export const getLoginStats = () => {
   const recent = loginLogStore
@@ -248,6 +267,37 @@ export const getLoginStats = () => {
     totalLogins: loginLogStore.length,
     recentLogins: recent
   };
+};
+
+export const fetchLoginStats = async (options = {}) => {
+  const statsRef = getLoginStatsDocRef();
+  let totalLogins = 0;
+  try {
+    const statsSnap = await getDoc(statsRef);
+    if (statsSnap.exists()) {
+      totalLogins = statsSnap.data().totalLogins || 0;
+    }
+  } catch (err) {
+    console.warn("Failed to read login stats summary", err);
+  }
+
+  try {
+    const logsQuery = query(
+      collection(db, BETA_LOGIN_LOG_COLLECTION),
+      orderBy("timestamp", "desc"),
+      limit(options.limit || RECENT_LOGIN_LIMIT)
+    );
+    const snap = await getDocs(logsQuery);
+    const recentLogins = snap.docs.map((docSnap) => docSnap.data());
+    return { totalLogins, recentLogins };
+  } catch (err) {
+    console.warn("Failed to load login logs from Firestore", err);
+    const fallback = getLoginStats();
+    return {
+      totalLogins,
+      recentLogins: fallback.recentLogins
+    };
+  }
 };
 
 export const recordSuccessfulLogin = (email, isAdmin) => {
@@ -262,6 +312,7 @@ export const recordSuccessfulLogin = (email, isAdmin) => {
     loginLogStore.splice(0, loginLogStore.length - MAX_LOGIN_LOGS);
   }
   persistLoginLog();
+  appendLoginLogToServer(entry);
 };
 
 export const hasLoggedInBefore = (rawEmail) => {

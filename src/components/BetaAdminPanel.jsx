@@ -18,7 +18,7 @@ import {
   deleteBetaUser,
   listBetaUsers,
   generateNewBetaCode,
-  getLoginStats,
+  fetchLoginStats,
   loadFeedback,
   loadAccessRequests,
   removeAccessRequest,
@@ -155,14 +155,23 @@ const BetaAdminPanel = ({ isOpen, onClose }) => {
     }
   };
 
+  const refreshLoginStats = async () => {
+    try {
+      const stats = await fetchLoginStats();
+      setLoginStatsState(stats);
+    } catch (err) {
+      console.error("Failed to refresh login stats", err);
+    }
+  };
+
   const refreshUsers = async () => {
     setLoadingUsers(true);
     try {
       const users = await listBetaUsers();
       users.sort((a, b) => a.email.localeCompare(b.email));
       setBetaUsers(users);
-      setLoginStatsState(getLoginStats());
-      refreshUsageForUsers(users);
+      await refreshUsageForUsers(users);
+      await refreshLoginStats();
     } catch (err) {
       console.error("Failed to load beta users", err);
       showStatus("Failed to load beta users.", "error");
