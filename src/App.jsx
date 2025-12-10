@@ -4184,7 +4184,7 @@ const App = () => {
           >
             <DoorClosed className="text-indigo-600" />
             <span>InstaSpec</span>
-            <span className="text-xs text-gray-400 font-normal ml-1">v1.2 Beta</span>
+            <span className="text-xs text-gray-400 font-normal ml-1">v1.3 Beta</span>
           </button>
 
           {/* CENTER: Role + status (desktop) */}
