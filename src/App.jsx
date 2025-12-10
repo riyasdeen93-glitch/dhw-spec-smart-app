@@ -11,7 +11,7 @@ import {
   Globe, Building, Save, X, Copy, Pencil, DoorClosed, 
   DoorOpen, AlertCircle, ArrowRight, ArrowLeft, FileSpreadsheet, 
   Brain, Check, AlertTriangle, TreeDeciduous, RectangleHorizontal, 
-  Menu, ChevronDown, Search, Info, Flame, Accessibility, RotateCcw,
+  Menu, ChevronDown, Search, Info, Flame, Wind, Accessibility, RotateCcw,
   Eye, Layers, UserCircle, History, Box, Download, Library, MoveHorizontal,
   Lock, Settings, MousePointer, Power, Printer, FileText, Volume2, Scale,
   BookOpen, UploadCloud, Wand2, ShieldCheck, Wrench, RefreshCw, Zap, MessageSquare
@@ -171,7 +171,24 @@ const WHY_INSTASPEC_CARDS = [
 ];
 const REVIEW_NOTICE =
   "Notice: All auto-generated door hardware content must be reviewed and approved by a qualified subject-matter expert before it is shared or issued. Proceed only if you acknowledge this requirement.";
+const MAIN_ENTRANCE_NOTE =
+  "Code Check: Main entrance fire rating must be verified per local code based on building height and occupancy.";
 
+const isMainEntranceUsage = (value = "") =>
+  String(value).toLowerCase().includes("main entrance");
+
+const MainEntranceReminder = ({ doors = [] }) => {
+  const needsWarning = doors.some(
+    (door) => isMainEntranceUsage(door.use) && Number(door.fire) === 0
+  );
+  if (!needsWarning) return null;
+  return (
+    <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 flex items-center gap-3">
+      <DoorOpen size={16} />
+      <span>{MAIN_ENTRANCE_NOTE}</span>
+    </div>
+  );
+};
 const DEFAULT_INSTANT_INPUTS = {
   Residential: {
     floors: 4,
@@ -907,6 +924,35 @@ const buildSetProfile = (doors = []) => {
     requiresFailSafe: profiles.some((p) => p.requiresFailSafe),
     requiresADA: doors.some((d) => d.ada),
     packageIntent: hardwareIntents.includes("Electromechanical") ? "Electromechanical" : "Mechanical"
+  };
+};
+
+const createPreviewDoorFromSet = (set, profile) => {
+  const useLabel = set.name || "Preview Door";
+  const material = profile.materials[0] || "Timber";
+  const isFireRated = profile.isFireRated;
+  return {
+    id: `preview-${set.id}`,
+    mark: set.id,
+    zone: "Preview",
+    level: "00",
+    roomName: useLabel,
+    qty: 1,
+    width: 900,
+    height: 2100,
+    weight: 50,
+    fire: isFireRated ? 60 : 0,
+    use: useLabel,
+    material,
+    config: "Single",
+    thickness: 45,
+    thicknessAuto: true,
+    visionPanel: false,
+    handing: "RH",
+    stc: 35,
+    ada: profile.requiresADA,
+    hardwareIntent: profile.packageIntent,
+    additionalLocations: []
   };
 };
 
@@ -2379,6 +2425,7 @@ const App = () => {
   const promptResolverRef = useRef(null);
   const [isMobileDownloadOpen, setIsMobileDownloadOpen] = useState(false);
   const [blockedStep, setBlockedStep] = useState(null);
+  const [reviewFinalized, setReviewFinalized] = useState(false);
 
   const openPrompt = useCallback((config = {}) => {
     return new Promise((resolve) => {
@@ -2633,20 +2680,27 @@ const App = () => {
     (idx) => {
       const proj = getProj();
       if (!proj) return false;
+      const hasDoors = Array.isArray(proj.doors) && proj.doors.length > 0;
+      const hasSets = Array.isArray(proj.sets) && proj.sets.length > 0;
       switch (idx) {
         case 0:
-          return Boolean(proj.name?.trim()) && Boolean(proj.details?.client?.trim()) && Boolean(proj.details?.architect?.trim());
+          return (
+            Boolean(proj.name?.trim()) &&
+            Boolean(proj.type) &&
+            Boolean(proj.standard) &&
+            Boolean(proj.details?.jurisdiction)
+          );
         case 1:
-          return Array.isArray(proj.doors) && proj.doors.length > 0;
+          return hasDoors;
         case 2:
-          return Array.isArray(proj.sets) && proj.sets.length > 0;
+          return hasDoors && hasSets;
         case 3:
-          return Array.isArray(proj.sets) && proj.sets.length > 0;
+          return hasDoors && hasSets && reviewFinalized;
         default:
           return false;
       }
     },
-    [projects, currentId]
+    [projects, currentId, reviewFinalized]
   );
 
   const canAccessStep = useCallback(
@@ -2678,11 +2732,26 @@ const App = () => {
     [step, canAccessStep, showNotice]
   );
 
+  const handleFinishReview = useCallback(() => {
+    setReviewFinalized(true);
+    handleStepChange(3);
+  }, [handleStepChange]);
+
   useEffect(() => {
     if (blockedStep !== null && canAccessStep(blockedStep)) {
       setBlockedStep(null);
     }
   }, [blockedStep, canAccessStep]);
+
+  useEffect(() => {
+    setReviewFinalized(false);
+  }, [currentId]);
+
+  useEffect(() => {
+    if (step < 3 && reviewFinalized) {
+      setReviewFinalized(false);
+    }
+  }, [step, reviewFinalized]);
 
   // --- ACTIONS ---
 
@@ -3042,7 +3111,7 @@ const App = () => {
       note = { type: 'info', msg: "Accessibility Note: Clear opening width might be too narrow for wheelchair access (Recommend >900mm)." };
     }
     else if (useLower.includes('corridor') && !isFireRated) {
-      note = { type: 'info', msg: "Check Code: Cross-corridor doors often require smoke/fire control." };
+      note = { type: 'info', msg: "Cross-corridor doors often require smoke/fire control." };
     }
 
     setComplianceNote(note);
@@ -3276,6 +3345,14 @@ const App = () => {
   // Hardware Logic
   const generateHardwareSets = async () => {
     const proj = getProj();
+    if (!proj) return;
+    if (!proj.doors.length) {
+      await showNotice(
+        "Door schedule missing",
+        "Finish the Door scheduling before proceeding to the next step."
+      );
+      return;
+    }
     const groups = {};
 
     proj.doors.forEach(d => {
@@ -3727,18 +3804,12 @@ const App = () => {
           >
             <DoorClosed className="text-indigo-600" />
             <span>InstaSpec</span>
-            <span className="text-xs text-gray-400 font-normal ml-1">v1.1 Beta</span>
+            <span className="text-xs text-gray-400 font-normal ml-1">v1.2 Beta</span>
           </button>
 
           {/* CENTER: Role + status (desktop) */}
           {user && (
             <div className="flex-1 hidden md:flex items-center justify-center gap-4">
-              {view === 'wizard' && (
-                <span className="hidden md:inline text-xs text-gray-400">
-                  {exportStatus || saveStatus}
-                </span>
-              )}
-
               <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-2 py-1">
                 <UserCircle size={16} className="text-gray-500" />
                 <select
@@ -3752,6 +3823,11 @@ const App = () => {
                   </option>
                 </select>
               </div>
+              {view === "wizard" && (
+                <span className="text-xs text-gray-400">
+                  {exportStatus || saveStatus}
+                </span>
+              )}
             </div>
           )}
 
@@ -4271,7 +4347,9 @@ const App = () => {
                     {/* Basic Info */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="flex flex-col gap-1">
-                          <label className="text-xs font-bold uppercase text-gray-600">Project Name</label>
+                          <label className="text-xs font-bold uppercase text-gray-600">
+                            Project Name <span className="text-xs text-red-500">*</span>
+                          </label>
                           <input
                             type="text"
                             placeholder="New Project"
@@ -4281,7 +4359,9 @@ const App = () => {
                           />
                         </div>
                         <div className="flex flex-col gap-1">
-                          <label className="text-xs font-bold uppercase text-gray-600">Facility Type</label>
+                           <label className="text-xs font-bold uppercase text-gray-600">
+                             Facility Type <span className="text-xs text-red-500">*</span>
+                           </label>
                           <select value={proj.type} onChange={(e) => { const updated = projects.map(p => p.id === currentId ? {...p, type: e.target.value} : p); setProjects(updated); }} className="p-2.5 border rounded-md bg-white">
                               {Object.keys(FACILITY_DATA).map(t => <option key={t} value={t}>{t}</option>)}
                           </select>
@@ -4293,17 +4373,23 @@ const App = () => {
                         <h3 className="text-sm font-bold text-gray-800 mb-3">Architectural Details</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs font-bold uppercase text-gray-500">Client / Owner</label>
+                                <label className="text-xs font-bold uppercase text-gray-500">
+                                  Client / Owner <span className="text-[9px] text-gray-500">(optional)</span>
+                                </label>
                                 <input type="text" placeholder="e.g. Acme Corp" value={proj.details?.client || ""} onChange={(e) => { const updated = projects.map(p => p.id === currentId ? {...p, details: {...p.details, client: e.target.value}} : p); setProjects(updated); }} className="w-full p-2 border rounded" />
                             </div>
                             <div>
-                                <label className="text-xs font-bold uppercase text-gray-500">Architect</label>
+                                <label className="text-xs font-bold uppercase text-gray-500">
+                                  Architect <span className="text-[9px] text-gray-500">(optional)</span>
+                                </label>
                                 <input type="text" placeholder="e.g. Design Studio" value={proj.details?.architect || ""} onChange={(e) => { const updated = projects.map(p => p.id === currentId ? {...p, details: {...p.details, architect: e.target.value}} : p); setProjects(updated); }} className="w-full p-2 border rounded" />
                             </div>
                             {userRole !== 'Owner' && (
                               <>
                                   <div>
-                                      <label className="text-xs font-bold uppercase text-gray-500">Hardware Standard</label>
+                                      <label className="text-xs font-bold uppercase text-gray-500">
+                                        Hardware Standard <span className="text-xs text-red-500">*</span>
+                                      </label>
                                       <select
                                           value={proj.standard}
                                           onChange={(e) => {
@@ -4330,7 +4416,9 @@ const App = () => {
                                       </select>
                                   </div>
                                   <div>
-                                      <label className="text-xs font-bold uppercase text-gray-500">Code Jurisdiction</label>
+                                      <label className="text-xs font-bold uppercase text-gray-500">
+                                        Code Jurisdiction <span className="text-xs text-red-500">*</span>
+                                      </label>
                                       <select value={proj.details?.jurisdiction || "IBC 2021"} onChange={(e) => { const updated = projects.map(p => p.id === currentId ? {...p, details: {...p.details, jurisdiction: e.target.value}} : p); setProjects(updated); }} className="w-full p-2 border rounded bg-white">
                                           <option>IBC 2021 (International Building Code)</option>
                                           <option>NFPA 101 (Life Safety Code)</option>
@@ -4435,14 +4523,15 @@ const App = () => {
                   </div>
                 </div>
 
-                {getProj().doors.length === 0 ? (
-                  <div className="text-center py-20 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                    <p className="text-gray-500">No doors defined yet.</p>
-                    <button onClick={() => openDoorModal()} className="mt-4 text-indigo-600 font-bold hover:underline">Click to add your first door</button>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto border border-gray-200 rounded-lg hardware-scroll">
-                    <table className="w-full table-clean min-w-[1000px]">
+                    {getProj().doors.length === 0 ? (
+                      <div className="text-center py-20 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                        <p className="text-gray-500">No doors defined yet.</p>
+                        <button onClick={() => openDoorModal()} className="mt-4 text-indigo-600 font-bold hover:underline">Click to add your first door</button>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto border border-gray-200 rounded-lg hardware-scroll">
+                        <MainEntranceReminder doors={getProj().doors} />
+                        <table className="w-full table-clean min-w-[1000px]">
                       <thead>
                         <tr>
                           <th className="text-left p-3 border-b">Mark</th>
@@ -4567,7 +4656,15 @@ const App = () => {
                   </div>
                 )}
                 
-                <div className="flex justify-end mt-6">
+                <div className="flex justify-between mt-6">
+                  <button
+                    type="button"
+                    onClick={() => handleStepChange(0)}
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    <ArrowLeft size={16} />
+                    Back
+                  </button>
                   <button onClick={generateHardwareSets} className="w-full md:w-auto px-6 py-2.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 font-medium flex items-center justify-center gap-2">
                     Generate Hardware Sets <ArrowRight size={18} />
                   </button>
@@ -4611,6 +4708,7 @@ const App = () => {
                         const isGlassOnlySet = doorsInSet.length > 0 && doorsInSet.every(d => d.material === 'Glass');
                         const setMaterials = Array.from(new Set(doorsInSet.map(d => d.material)));
                         const setProfile = buildSetProfile(doorsInSet);
+                        const previewDoor = repDoor || createPreviewDoorFromSet(s, setProfile);
                         const setHandles = s.items.filter((i) => i.category === "Handles");
                         const hasGlassLeverHandle = setHandles.some((h) => (h.type || '').toLowerCase().includes('lever'));
                         const requiresGlassLeverCenter = isGlassOnlySet && hasGlassLeverHandle;
@@ -4633,7 +4731,7 @@ const App = () => {
                         <div className="flex flex-col lg:flex-row gap-6">
                             {/* Feature 3: Visual Preview in Hardware Set */}
                             <div className="shrink-0">
-                                {repDoor && <DoorPreview door={repDoor} hardwareSet={s} />}
+                                <DoorPreview door={previewDoor} hardwareSet={s} />
                             </div>
 
                             <div className="flex-1">
@@ -4857,7 +4955,7 @@ const App = () => {
                     <button onClick={() => handleStepChange(1)} className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-100 flex items-center gap-2">
                       <ArrowLeft size={16}/> Back
                     </button>
-                    <button onClick={() => handleStepChange(3)} className="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 flex items-center gap-2 font-medium">
+                    <button onClick={handleFinishReview} className="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 flex items-center gap-2 font-medium">
                       Finish & Review <ArrowRight size={16}/>
                     </button>
                   </div>
@@ -5285,11 +5383,31 @@ const App = () => {
                 </div>
               </div>
 
+              {isMainEntranceUsage(doorForm.use) && Number(doorForm.fire) === 0 && (
+                <div className="mt-3 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 flex items-center gap-2">
+                  <DoorOpen size={14} />
+                  {MAIN_ENTRANCE_NOTE}
+                </div>
+              )}
+
               {doorForm.config === 'Double' && (
                 <div className="text-[11px] text-gray-500">
                   {doorForm.fire > 0
                     ? "Fire-rated pairs default to rebated meeting stiles per EN 1634 / ANSI UL10C."
                     : "Non-rated pairs use a flush meeting stile between leaves."}
+                </div>
+              )}
+
+              {complianceNote && (
+                <div className={`mt-4 p-3 rounded-lg border flex gap-3 items-start ${complianceNote.type === 'warning' ? 'bg-orange-50 border-orange-200 text-orange-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                  {complianceNote.type === 'warning' ? (
+                    <Flame size={18} className="shrink-0 mt-0.5" />
+                  ) : (
+                    <Wind size={18} className="shrink-0 mt-0.5" />
+                  )}
+                  <div className="text-sm leading-relaxed">
+                    <strong>Code Check:</strong> {complianceNote.msg}
+                  </div>
                 </div>
               )}
 
@@ -5348,15 +5466,6 @@ const App = () => {
                     placeholder="Enter specific installation notes or requirements..."
                   />
               </div>
-
-              {complianceNote && (
-                <div className={`mt-4 p-3 rounded-lg border flex gap-3 items-start ${complianceNote.type === 'warning' ? 'bg-orange-50 border-orange-200 text-orange-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
-                  {complianceNote.type === 'warning' ? <Flame size={18} className="shrink-0 mt-0.5"/> : <Accessibility size={18} className="shrink-0 mt-0.5"/>}
-                  <div className="text-sm leading-relaxed">
-                    <strong>Code Check:</strong> {complianceNote.msg}
-                  </div>
-                </div>
-              )}
 
             </div>
             <div className="p-4 md:p-6 border-t border-gray-100 flex justify-end shrink-0 bg-gray-50 rounded-b-xl">
