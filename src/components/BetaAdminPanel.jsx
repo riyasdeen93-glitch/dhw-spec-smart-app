@@ -56,6 +56,7 @@ const BetaAdminPanel = ({ isOpen, onClose }) => {
   const [makeAdmin, setMakeAdmin] = useState(false);
   const [status, setStatus] = useState(null);
   const [activeTab, setActiveTab] = useState("access");
+  const [userListTab, setUserListTab] = useState("expiring");
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [usageMap, setUsageMap] = useState({});
   const [extensionInputs, setExtensionInputs] = useState({});
@@ -85,12 +86,25 @@ const BetaAdminPanel = ({ isOpen, onClose }) => {
     };
   }, [betaUsers, loginStats.totalLogins]);
 
+  const expiringUsers = useMemo(
+    () => betaUsers.filter((user) => Boolean(user.expiresAt)),
+    [betaUsers]
+  );
+
+  const noExpiryUsers = useMemo(
+    () => betaUsers.filter((user) => !user.expiresAt),
+    [betaUsers]
+  );
+
+  const displayedUsers = userListTab === "noExpiry" ? noExpiryUsers : expiringUsers;
+
   useEffect(() => {
     if (!isOpen) return;
     setStatus(null);
     setEmailInput("");
     setMakeAdmin(false);
     setActiveTab("access");
+    setUserListTab("expiring");
     setExtensionInputs({});
     setActionLoading({});
     refreshUsers();
@@ -349,6 +363,24 @@ const BetaAdminPanel = ({ isOpen, onClose }) => {
     { id: "feedback", label: "Feedback" }
   ];
 
+  const userGroupTabs = [
+    {
+      id: "expiring",
+      label: "Expiring",
+      description: "Users with a set expiry date",
+      count: expiringUsers.length
+    },
+    {
+      id: "noExpiry",
+      label: "No expiry",
+      description: "Unlimited access users",
+      count: noExpiryUsers.length
+    }
+  ];
+
+  const activeUserGroup =
+    userGroupTabs.find((tab) => tab.id === userListTab) || userGroupTabs[0];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 p-6 relative max-h-[95vh] overflow-y-auto">
@@ -509,6 +541,26 @@ const BetaAdminPanel = ({ isOpen, onClose }) => {
                 <span className="text-xs text-gray-500">Users load directly from Firestore.</span>
               </div>
 
+              <div className="flex flex-wrap gap-2 mb-3">
+                {userGroupTabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setUserListTab(tab.id)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-full border ${
+                      userListTab === tab.id
+                        ? "bg-indigo-600 text-white border-indigo-600"
+                        : "text-gray-600 border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    {tab.label} <span className="font-mono text-[11px]">{tab.count}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-gray-500 mb-4">
+                {activeUserGroup.description}
+              </p>
+
               <form
                 onSubmit={handleAddUser}
                 className="flex flex-col md:flex-row gap-3 items-start md:items-end mb-4 bg-gray-50 border border-gray-200 rounded-xl p-3"
@@ -551,8 +603,12 @@ const BetaAdminPanel = ({ isOpen, onClose }) => {
                   <div className="p-4 text-sm text-gray-500 flex items-center gap-2">
                     <AlertCircle size={16} /> No beta users yet.
                   </div>
+                ) : displayedUsers.length === 0 ? (
+                  <div className="p-4 text-sm text-gray-500 flex items-center gap-2">
+                    <AlertCircle size={16} /> No {activeUserGroup.label.toLowerCase()} users found.
+                  </div>
                 ) : (
-                  betaUsers.map((user) => {
+                  displayedUsers.map((user) => {
                     const usage = getUsageFor(user.email);
                     const limitReached = !user.isAdmin && usage.count >= usage.limit;
                     const limitWarning =

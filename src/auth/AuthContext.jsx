@@ -25,7 +25,9 @@ export const AuthProvider = ({ children }) => {
       return null;
     }
   });
+
   const logoutTimerRef = useRef(null);
+
   const toUserState = useCallback((record) => {
     if (!record?.email) return null;
     const normalizedEmail = record.email.trim().toLowerCase();
@@ -34,11 +36,21 @@ export const AuthProvider = ({ children }) => {
     return {
       email: normalizedEmail,
       plan,
-      isAdmin:
-        typeof record.isAdmin === "boolean" ? record.isAdmin : plan === "beta_admin",
+      isAdmin: typeof record.isAdmin === "boolean" ? record.isAdmin : plan === "beta_admin",
       expiresAt: typeof record.expiresAt === "number" ? record.expiresAt : null
     };
   }, []);
+
+  const clearUserState = useCallback(
+    (reason, payload = {}) => {
+      if (import.meta.env.DEV) {
+        console.warn("[Auth] Clearing cached user", reason, payload);
+      }
+      setUser(null);
+      return null;
+    },
+    []
+  );
 
   const refreshFromServer = useCallback(
     async (email) => {
@@ -46,14 +58,21 @@ export const AuthProvider = ({ children }) => {
       if (!normalized) return null;
       try {
         const latest = await getBetaUser(normalized);
+        const devAllowBetaOverride =
+          import.meta.env.DEV && normalized === "admin@techarix.com";
         if (!latest || (latest.expiresAt && latest.expiresAt <= Date.now())) {
-          setUser(null);
-          return null;
+          if (devAllowBetaOverride) {
+            console.warn("[Auth] Using dev override for expired/missing beta record", {
+              normalized,
+              latest
+            });
+            return user;
+          }
+          return clearUserState("expired-or-missing-latest", { latest });
         }
         const mapped = toUserState({ ...latest, email: normalized });
         if (!mapped) {
-          setUser(null);
-          return null;
+          return clearUserState("mapped-user-invalid", { latest });
         }
         setUser((prev) => {
           if (
@@ -73,7 +92,7 @@ export const AuthProvider = ({ children }) => {
         return null;
       }
     },
-    [toUserState]
+    [clearUserState, toUserState, user]
   );
 
   useEffect(() => {
@@ -94,11 +113,10 @@ export const AuthProvider = ({ children }) => {
 
     const msLeft = user.expiresAt - Date.now();
     if (msLeft <= 0) {
-      setUser(null);
-      return;
+      return clearUserState("expired-timer", { msLeft });
     }
     logoutTimerRef.current = setTimeout(() => {
-      setUser(null);
+      clearUserState("timer-signout");
     }, msLeft);
 
     return () => {
@@ -107,7 +125,7 @@ export const AuthProvider = ({ children }) => {
         logoutTimerRef.current = null;
       }
     };
-  }, [user]);
+  }, [user, clearUserState]);
 
   useEffect(() => {
     if (!user?.email) return undefined;
@@ -125,8 +143,8 @@ export const AuthProvider = ({ children }) => {
   );
 
   const logout = useCallback(() => {
-    setUser(null);
-  }, []);
+    clearUserState("manual-logout");
+  }, [clearUserState]);
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>

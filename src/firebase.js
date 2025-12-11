@@ -14,5 +14,17 @@ const firebaseConfig = {
 // Start Firebase
 const app = initializeApp(firebaseConfig);
 
-// Export the Firestore database
-export const db = getFirestore(app);
+if (import.meta.env.DEV) {
+  console.info("[Firebase] Running in development mode");
+  console.debug("[Firebase] Configuration", {
+    projectId: firebaseConfig.projectId,
+    storageBucket: firebaseConfig.storageBucket,
+    messagingSenderId: firebaseConfig.messagingSenderId,
+    appId: firebaseConfig.appId
+  });
+}
+
+const FIRESTORE_DATABASE_ID = import.meta.env.VITE_FIRESTORE_DATABASE || "(default)";
+
+// Export the Firestore database (you can target a multi-database instance by setting VITE_FIRESTORE_DATABASE)
+export const db = getFirestore(app, FIRESTORE_DATABASE_ID);
