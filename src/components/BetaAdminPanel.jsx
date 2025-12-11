@@ -87,7 +87,18 @@ const BetaAdminPanel = ({ isOpen, onClose }) => {
   }, [betaUsers, loginStats.totalLogins]);
 
   const expiringUsers = useMemo(
-    () => betaUsers.filter((user) => Boolean(user.expiresAt)),
+    () =>
+      betaUsers.filter(
+        (user) => Boolean(user.expiresAt) && (!user.expiresAt || user.expiresAt > Date.now())
+      ),
+    [betaUsers]
+  );
+
+  const expiredUsers = useMemo(
+    () =>
+      betaUsers.filter(
+        (user) => Boolean(user.expiresAt) && user.expiresAt <= Date.now()
+      ),
     [betaUsers]
   );
 
@@ -96,7 +107,12 @@ const BetaAdminPanel = ({ isOpen, onClose }) => {
     [betaUsers]
   );
 
-  const displayedUsers = userListTab === "noExpiry" ? noExpiryUsers : expiringUsers;
+  const displayedUsers =
+    userListTab === "noExpiry"
+      ? noExpiryUsers
+      : userListTab === "expired"
+      ? expiredUsers
+      : expiringUsers;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -367,8 +383,14 @@ const BetaAdminPanel = ({ isOpen, onClose }) => {
     {
       id: "expiring",
       label: "Expiring",
-      description: "Users with a set expiry date",
+      description: "Active beta users whose expiry is in the future",
       count: expiringUsers.length
+    },
+    {
+      id: "expired",
+      label: "Expired",
+      description: "Users whose access dates have passed",
+      count: expiredUsers.length
     },
     {
       id: "noExpiry",
